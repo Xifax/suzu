@@ -1,3 +1,5 @@
-#Mon Jan 31 12:16:22 MSK 2011
+#Mon Feb 07 16:37:41 MSK 2011
 eclipse.preferences.version=1
 encoding//src/gui.py=utf-8
+encoding//src/rtimer.py=utf-8
+encoding//src/srs.py=utf-8
