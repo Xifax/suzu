@@ -26,3 +26,9 @@ class srsScheduler():
     
     def getCorrectAnswer(self,item):
         return u'そら'
+    
+    def getSentenceTranslation(self,sentence):
+        return u'translation!'
+    
+    def kanjiToKana(self,sentence):
+        return u'test'

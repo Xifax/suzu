@@ -24,15 +24,16 @@ class Quiz(QFrame):
         self.countdown = QProgressBar()
         
         #self.sentence = QLabel(u"<font size=8>これはテストの" + "<b><font color='blue'>文</font></b>" + "であります</font>")
-        self.sentence = QLabel(u"これはテストの" + "<font color='blue'>文</font>" + "でありますですですですですですですですですですでですですですです！")
+        #self.sentence = QLabel(u"これはテストの" + "<font color='blue'>文</font>" + "でありますですですですですですですですですですでですですですです！")
+        self.sentence = QLabel(u'')
         
         #font = QFont(u'メイリオ', 12) #さざなみ明朝      #メイリオ
         #font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 90)
 
-        self.var_1st = QPushButton(u"ぶん")
-        self.var_2nd = QPushButton(u"とら")
-        self.var_3rd = QPushButton(u"あい")
-        self.var_4th = QPushButton(u"よう")
+        self.var_1st = QPushButton(u'')
+        self.var_2nd = QPushButton(u'')
+        self.var_3rd = QPushButton(u'')
+        self.var_4th = QPushButton(u'')
 
         self.answered = QPushButton(u'')
         self.answered.hide()
@@ -62,7 +63,12 @@ class Quiz(QFrame):
         self.trayMenu = QMenu()
         
         self.nextQuizTimer = QTimer()
+        self.nextQuizTimer.setSingleShot(True)
+        self.nextQuizTimer.timeout.connect(self.showQuiz)
+        
         self.countdownTimer = QTimer()
+        self.countdownTimer.setSingleShot(True)
+        
         self.animationTimer = ()
                 
         #config here
@@ -76,8 +82,8 @@ class Quiz(QFrame):
         self.srs = srsScheduler()
         
         #begin work!
-        #self.waitUntilNextTimeslot()
-        self.showQuiz()
+        self.waitUntilNextTimeslot()
+        #self.showQuiz()
         #self.hideButtonsQuiz()
         
         
@@ -86,7 +92,8 @@ class Quiz(QFrame):
         #self.info.show() --> to do cool stuff
     
     def waitUntilNextTimeslot(self):
-        self.nextQuizTimer.singleShot(2000, self.showQuiz)
+        self.nextQuizTimer.start(10000)
+        #self.nextQuizTimer.singleShot(10000, self.showQuiz)
         
     #def beginCountdown(self):
         #self.countdownTimer.singleShot(1000, self.showQuiz)
@@ -128,7 +135,7 @@ class Quiz(QFrame):
         self.sentence.setFont(QFont(u'メイリオ', 12))
         self.sentence.font().setStyleStrategy(QFont.PreferAntialias)
         self.sentence.setWordWrap(True)
-        self.trayIcon.setIcon(QIcon('../resources/noren.ico'))
+        self.trayIcon.setIcon(QIcon('../res/cards.ico'))
         
     def updateContent(self):
         self.showButtonsQuiz()
@@ -210,21 +217,29 @@ class Quiz(QFrame):
         self.fade()
         QTimer.singleShot(1000,self.hide)
         self.waitUntilNextTimeslot()
-
     
     def setMenus(self):
         self.trayMenu.addAction(QAction('&Quiz me now!', self, shortcut="Q", triggered=self.showQuiz))
+        self.pauseAction = QAction('&Pause', self, shortcut="P", triggered=self.pauseQuiz)
+        self.trayMenu.addAction(self.pauseAction)
         self.trayMenu.addAction(QAction('&Options', self, shortcut="O", triggered=self.showOptions))
         self.trayMenu.addAction(QAction('&About', self, shortcut="A", triggered=self.showAbout))
         self.trayMenu.addSeparator()
         self.trayMenu.addAction(QAction('&Exit', self, shortcut="E", triggered=self.saveAndExit))
 
         self.trayIcon.setContextMenu(self.trayMenu)
-        #self.trayIcon.activated.connect(self.showForm())
-        self.trayIcon.setToolTip('Test!')
+        self.trayIcon.setToolTip('Quiz in progress!')
+        #self.trayIcon.activated.connect(self.showQuiz) # left click breaks it all
  
-    #def showForm(self):
-        #self.show()
+    def pauseQuiz(self):
+        if self.pauseAction.text() == '&Pause':     # somehow, QTimer.isActive does not work properly
+            self.nextQuizTimer.stop()
+            self.pauseAction.setText('&Unpause')
+            self.trayIcon.setToolTip('Quiz paused!')
+        else:
+            self.waitUntilNextTimeslot()
+            self.pauseAction.setText('&Pause')
+            self.trayIcon.setToolTip('Quiz in progress!')
  
     def showQuiz(self):
         self.updateContent()
