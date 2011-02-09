@@ -10,7 +10,7 @@ import sys
 from srs import srsScheduler
 from rtimer import RepeatTimer
 
-from PySide.QtCore import *
+from PySide.QtCore import * #fix to parsimonious imports
 from PySide.QtGui import *
 
 class Quiz(QFrame):
