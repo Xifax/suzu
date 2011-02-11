@@ -11,7 +11,7 @@ from srs import srsScheduler
 from rtimer import RepeatTimer
 from fonts import Fonts
 
-from PySide.QtCore import * #TODO: fix to parsimonious imports
+from PySide.QtCore import QTimer,Qt,QRect #TODO: fix to parsimonious imports
 from PySide.QtGui import *
 
 class Quiz(QFrame):
