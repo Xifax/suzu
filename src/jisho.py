@@ -7,7 +7,7 @@ Created on Feb 7, 2011
 import urllib2, re#, thread
 from BeautifulSoup import BeautifulSoup
 
-class JishoClient():
+class JishoClient:
 
     @staticmethod
     def getExamples(kanji):
@@ -18,7 +18,7 @@ class JishoClient():
         
         url =  JISHO_URL + kanji
         
-        soup = BeautifulSoup(urllib2.urlopen(url))  # add try - except (in case internets've died)
+        soup = BeautifulSoup(urllib2.urlopen(url))  #TODO: add try - except (in case internets've died)
         
         check = soup.findAll('h2')
         if len(check) > 0 and len(check[0].contents) > 0:

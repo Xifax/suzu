@@ -5,13 +5,13 @@ Created on Feb 7, 2011
 @author: Yadavito
 '''
 
-class srsScheduler():
+class srsScheduler:
 
     def __init__(self):
         self.currentItem = u''
         
     def getNextItem(self):
-        # getting next item...
+        #TODO: getting next item...
         self.currentItem = u'空'
         return u'空'
     

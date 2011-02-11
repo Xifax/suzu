@@ -9,8 +9,9 @@ import sys
 
 from srs import srsScheduler
 from rtimer import RepeatTimer
+from fonts import Fonts
 
-from PySide.QtCore import * #fix to parsimonious imports
+from PySide.QtCore import * #TODO: fix to parsimonious imports
 from PySide.QtGui import *
 
 class Quiz(QFrame):
@@ -46,6 +47,8 @@ class Quiz(QFrame):
         self.layout_horizontal.addWidget(self.var_2nd)
         self.layout_horizontal.addWidget(self.var_3rd)
         self.layout_horizontal.addWidget(self.var_4th)
+        
+        #QShortcut(QKeySequence("Ctrl+1"), self, None, self.var_1st.click())
 
         self.layout_vertical.addWidget(self.countdown)
         self.layout_vertical.addWidget(self.sentence)
@@ -68,8 +71,10 @@ class Quiz(QFrame):
         
         self.countdownTimer = QTimer()
         self.countdownTimer.setSingleShot(True)
+        self.countdownTimer.timeout.connect(self.timeIsOut)
         
         self.animationTimer = ()
+        self.progressTimer = ()
                 
         #config here
         self.initializeComposition()
@@ -82,7 +87,7 @@ class Quiz(QFrame):
         self.srs = srsScheduler()
         
         #begin work!
-        self.waitUntilNextTimeslot()
+        ###self.waitUntilNextTimeslot()
         #self.showQuiz()
         #self.hideButtonsQuiz()
         
@@ -92,16 +97,26 @@ class Quiz(QFrame):
         #self.info.show() --> to do cool stuff
     
     def waitUntilNextTimeslot(self):
-        self.nextQuizTimer.start(10000)
+        #TODO: no magic constants!
+        self.nextQuizTimer.start(10000) #10 seconds for testing purposes
         #self.nextQuizTimer.singleShot(10000, self.showQuiz)
         
-    #def beginCountdown(self):
-        #self.countdownTimer.singleShot(1000, self.showQuiz)
+    def beginCountdown(self):
+        self.countdownTimer.start(10000)
+        # yes, this looks awful, ok
+        #10000/100
+        #RepeatTimer(0.01, self.updateCountdownBar,1000).start()
+        self.progressTimer = RepeatTimer(0.01, self.updateCountdownBar, 1000)
+        self.progressTimer.start()
+        
+    def updateCountdownBar(self):
+        self.countdown.setValue(self.countdown.value() - 1)
+        print self.countdown.value()
 
     def initializeComposition(self):
-        #may or may not want to control dialog size according to text size
-        D_WIDTH = 400
-        D_HEIGHT = 136
+        #TODO: may or may not want to control dialog size according to text size
+        D_WIDTH = 500
+        D_HEIGHT = 176#136
 
         #down right corner position
         H_INDENT = D_WIDTH + 10 #indent from right
@@ -110,10 +125,13 @@ class Quiz(QFrame):
         self.setWindowFlags(Qt.FramelessWindowHint) #and Qt.WindowStaysOnTopHint)
         self.setFocusPolicy(Qt.StrongFocus)
         self.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
-        self.setFont(QFont(u'さざなみ明朝 ', 12))
+        self.setFont(QFont(Fonts.SazanamiMyoutyou, 12))
+        #self.setFont(QFont(u'さざなみ明朝 ', 12))
         #self.setWindowOpacity(0.88)
         desktop = QApplication.desktop().screenGeometry()
         self.setGeometry(QRect(desktop.width() - H_INDENT, desktop.height() - V_INDENT, D_WIDTH, D_HEIGHT))
+        
+        self.setStyleSheet("QWidget { background-color: rgb(255, 255,255);}")
         
     def fade(self):
         if self.windowOpacity() == 1:
@@ -131,9 +149,21 @@ class Quiz(QFrame):
         
     def initializeComponents(self):
         self.countdown.setMaximumHeight(6)
+        self.countdown.setRange(0,1000)
+        self.countdown.setTextVisible(False)
+        self.countdown.setStyleSheet("QProgressbar { background-color: rgb(255, 255,255);}")
+        
         self.sentence.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.sentence.setFont(QFont(u'メイリオ', 12))
-        self.sentence.font().setStyleStrategy(QFont.PreferAntialias)
+        #TODO: it's actually nice to change fonts every iteration
+        self.sentence.setFont(QFont(Fonts.HiragiNoMarugotoProW4, 18))
+        
+        #self.var_1st.setStyleSheet("QWidget { border: 1px solid red;}")
+
+        #self.sentence.setStyleSheet("QWidget {border:1px solid rgb(255, 170, 255); }")
+        #self.sentence.setFont(QFont(u'小塚明朝 Pro EL', 12))
+        #self.sentence.setFont(QFont(u'メイリオ', 12))
+        #self.sentence.font().setStyleStrategy(QFont.PreferQuality)
+        
         self.sentence.setWordWrap(True)
         self.trayIcon.setIcon(QIcon('../res/cards.ico'))
         
@@ -141,7 +171,11 @@ class Quiz(QFrame):
         self.showButtonsQuiz()
         
         self.srs.getExample(self.srs.getNextItem())
-        self.sentence.setText(self.srs.getExample(self.srs.getCurrentItem()))
+        #TODO: add color modification for quiz part, for example:
+        #example = self.srs.getExample(self.srs.getCurrentItem()).replace(self.srs.getCurrentItem(), u"<font color='blue'>" + self.srs.getCurrentItem() + u"</font>") #this is for test only
+        #example = u"これはテストの" + "<font color='blue'>文</font>" + "でありますですですですですですですですですですでですですですです！"
+        example =u'軈て幽霊は濃い霧の中に消えた。'
+        self.sentence.setText(example)#self.srs.getExample(self.srs.getCurrentItem()))
         
         readings = self.srs.getQuizVariants(self.srs.getCurrentItem())
         
@@ -197,17 +231,28 @@ class Quiz(QFrame):
         self.answered.hide()
         self.answered.disconnect()
         
+    def stopCountdown(self):
+        self.progressTimer.cancel()
+        self.countdownTimer.stop()
+        
     def correctAnswer(self):
+        self.stopCountdown()
         print 'correct!'
         self.hideButtonsQuiz()
         self.answered.setText(u'Correct!')
         #self.hideQuizAndWaitForNext() # -> temporarily
         
     def wrongAnswer(self):
+        self.stopCountdown()
         print 'wrong!'
         self.hideButtonsQuiz()
         self.answered.setText(u'Wrong! Correct answer is:' + self.srs.getCorrectAnswer(self.srs.getCurrentItem()))
         #self.hideQuizAndWaitForNext()
+        
+    def timeIsOut(self):
+        print 'timeout'
+        self.hideButtonsQuiz()
+        self.answered.setText(u'Time is out! Correct answer is:' + self.srs.getCorrectAnswer(self.srs.getCurrentItem()))
             
     def hideQuizAndWaitForNext(self):
         # N.B.
@@ -232,22 +277,32 @@ class Quiz(QFrame):
         #self.trayIcon.activated.connect(self.showQuiz) # left click breaks it all
  
     def pauseQuiz(self):
-        if self.pauseAction.text() == '&Pause':     # somehow, QTimer.isActive does not work properly
-            self.nextQuizTimer.stop()
-            self.pauseAction.setText('&Unpause')
-            self.trayIcon.setToolTip('Quiz paused!')
+        #TODO: it would be good to hide sentence, if paused during the actual quiz!
+        if self.isHidden():
+            if self.pauseAction.text() == '&Pause':     # somehow, QTimer.isActive does not work properly
+                self.nextQuizTimer.stop()
+                self.pauseAction.setText('&Unpause')
+                self.trayIcon.setToolTip('Quiz paused!')
+            else:
+                self.waitUntilNextTimeslot()
+                self.pauseAction.setText('&Pause')
+                self.trayIcon.setToolTip('Quiz in progress!')
         else:
-            self.waitUntilNextTimeslot()
-            self.pauseAction.setText('&Pause')
-            self.trayIcon.setToolTip('Quiz in progress!')
+            print 'Sorry, cannot pause while quiz in progress!'
  
     def showQuiz(self):
-        self.updateContent()
-        self.setButtonsActions()
-        
-        self.show()
-        self.setWindowOpacity(0)
-        self.fade()
+        if self.isHidden():
+            self.updateContent()
+            self.setButtonsActions()
+            
+            self.show()
+            self.setWindowOpacity(0)
+            self.fade()
+
+            self.countdown.setValue(1000) #TODO: no magic constant!
+            self.beginCountdown()
+        else:
+            print 'Already quizZzing!'
          
     def showOptions(self):
         print 'here be options!'
@@ -256,8 +311,16 @@ class Quiz(QFrame):
         print 'about, yeah'
  
     def saveAndExit(self):
+        #TODO: check if it really works
+        if self.countdownTimer.isActive():
+                self.countdownTimer.stop()
+        if self.nextQuizTimer.isActive():
+                self.nextQuizTimer.stop()
+        if self.progressTimer.isAlive():
+                self.progressTimer.cancel()      
+            
         self.trayIcon.hide()
-        self.close() #to do with bells and whistles
+        self.close() #TODO: with bells and whistles
 
 if __name__ == '__main__':
 
