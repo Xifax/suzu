@@ -10,13 +10,13 @@ from BeautifulSoup import BeautifulSoup
 class JishoClient:
 
     @staticmethod
-    def getExamples(kanji):
+    def getExamples(query):
         HREF_ITER = 'href'
         UN_URL_PART = '/kanji/details/'
         EX_FOUND = 'Found'
         JISHO_URL = 'http://jisho.org/sentences?jap='
         
-        url =  JISHO_URL + kanji
+        url =  JISHO_URL + query    #may be kanji or word
         
         soup = BeautifulSoup(urllib2.urlopen(url))  #TODO: add try - except (in case internets've died)
         

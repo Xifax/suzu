@@ -18,7 +18,7 @@ class Leitner:
     @staticmethod
     def nextQuiz(grade):         # 'time' param not required, we're counting from 'now'
         return {
-           Leitner.grades.None : datetime.now(),                                                # or it may be better to specify nothing at all
+           Leitner.grades.None : datetime.now(),  # it's not necessary to fill in the corresponding db field  # or it may be better to specify nothing at all
            Leitner.grades.SeenOnce : datetime.now() + timedelta(minutes = Leitner.coeff * 10),  #or 15, 30?
            Leitner.grades.Familiar : datetime.now() + timedelta(hours = Leitner.coeff * 1),     #or 2, 3?
            Leitner.grades.Accustomed : datetime.now() + timedelta(hours = Leitner.coeff * 12),
