@@ -11,7 +11,7 @@ class Options:
     
     def __init__(self):
         #TODO: conceive application name
-        self.APP_NAME = 'rinne'             #輪廻／りんね
+        self.APP_NAME = 'rinne'             #輪廻／りんね or 鈴ね
         
         #default settings
         self.OPTIONS = [('SFont',           #sentences fonts
@@ -34,6 +34,10 @@ class Options:
                   {'autoquiz'   : False,    #start quiz on launch
                    'splash'     : False     #splash on start
                    })
+                 ('Session',                #session parameters
+                  {'size'       : 300,      #number of items in session
+                   'length'     : 600       #maximum repetitions/day
+                             })
                ]
         
         #creates or reads from app.ini in Users/username/
