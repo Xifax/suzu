@@ -7,14 +7,15 @@ Created on Feb 12, 2011
 
 from sqlalchemy.ext.sqlsoup import SqlSoup
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import and_, asc
 from elixir import Entity,Field,Unicode,Integer,TIMESTAMP,ManyToMany,\
 metadata,session,create_all,setup_all,BOOLEAN
 
 #import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import os.path
-from random import shuffle, sample
+from random import shuffle, sample, randrange
 
 from leitner import Leitner
 
@@ -73,6 +74,7 @@ class DBoMagic:
         self.db = ()    #kanjidic2 db
         
     def setupDB(self):  
+        """Initialize/read database on disk"""
         self.db = SqlSoup(self.sqite + self.pathToRes + self.kanjidic2)     #TODO: add check up
         setup_all()
         if not os.path.exists(self.pathToRes + self.dbname):
@@ -112,21 +114,35 @@ class DBoMagic:
             
         session.commit()
 
+    def endCurrentSesion(self):
+        for kanji in Kanji.query.all():
+            kanji.current_session = False
+        for word in Word.query.all():
+            word.current_session = False    
+        
+        session.commit()
+
     def updateQuizItem(self, item, newGrade, nextQuiz):
-        #TODO: implement!
-        result = Kanji.query.filter_by(character = item).all()
+        
+        item.leitner_grade = newGrade
+        item.next_quiz = nextQuiz
+        
+        session.commit()
+        
+    def updateQuizItemByValue(self, itemValue, newGrade, nextQuiz):
+        
+        result = Kanji.query.filter_by(character = itemValue).all()
         if 2 > len(result) > 0:
             result[0].leitner_grade = newGrade
             result[0].next_quiz = nextQuiz
         else:
-            result = Word.query.filter_by(word = item).all()
+            result = Word.query.filter_by(word = itemValue).all()
             if 2 > len(result) > 0:
                 result[0].leitner_grade = newGrade
                 result[0].next_quiz = nextQuiz
-        
+                
         session.commit()
-        #raise NotImplementedError
-    
+       
     def addKanjiToDb(self, character):
         Kanji(character = character)
         session.commit()
@@ -135,17 +151,45 @@ class DBoMagic:
         Kanji.query.filter_by(character = kanji).one().example.append(Example(sentence = sentence,translation = translation))          #or get_by
         #k.example.append(Example(sentence = sentence,translation = translation)) 
         session.commit()
+    
+    def addExamplesForKanji(self, kanji, examples):
+        for example in examples:
+            kanji.example.append(Example(sentence = example,translation = examples[example]))
+        session.commit()
+            
+    def getExample(self, kanji):
+        examples = kanji.example
+        return examples[randrange(0, len(examples))]
         
-    def checkIfKanjiHasExamples(self, kanji):
-        if len(Kanji.query.filter_by(character = kanji).one().example) > 0:
-            return True
-        else: 
+    #TODO: throw away unneeded implementation
+    def checkIfKanjiHasExamplesByValue(self, kanjiValue):
+        try:
+            if len(Kanji.query.filter_by(character = kanjiValue).one().example) > 0:
+                return True
+            else: 
+                return False
+        except NoResultFound:
+            return False
+        
+    def checkIfKanjiHasWordsByValue(self, kanjiValue):
+        try:
+            if len(Kanji.query.filter_by(character = kanjiValue).one().word) > 0:
+                return True
+            else: 
+                return False
+        except NoResultFound:
             return False
         
     def checkIfKanjiHasWords(self, kanji):
-        if len(Kanji.query.filter_by(character = kanji).one().word) > 0:
+        if len(kanji.word) > 0:
             return True
-        else: 
+        else:
+            return False
+        
+    def checkIfKanjiHasExamples(self, kanji):
+        if len(kanji.example) > 0:
+            return True
+        else:
             return False
     
     def addItemsToDbJlpt(self, jlptGrade):
@@ -154,7 +198,7 @@ class DBoMagic:
             if 0 < jlptGrade < 5:
                 selection = self.db.character.filter(self.db.character.jlpt==jlptGrade).all()
                 
-                #time for quiz
+                #time for next quiz
                 now = datetime.now()
                 
                 jlpt = u'jlpt' + str(jlptGrade)
@@ -191,6 +235,9 @@ class DBoMagic:
                           next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True)   #grade integer value
                     #next_quiz -> may be const = timedate.now()
                     
+                    # for easier management
+                    #Kanji(character = kanji.literal, tags = jlpt, next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True)
+                    
                 try: 
                     session.commit()
                 except IntegrityError:
@@ -201,20 +248,24 @@ class DBoMagic:
             
         #def addKanjiToDb(self, kanji):
             #test = self.db.character.filter(self.db.character.literal = kanji).one()
-            
+'''
 db = DBoMagic()
 db.setupDB()
+
+#jlptGrade = 3
+#db.addItemsToDbJlpt(jlptGrade)
+
+db.initializeCurrentSession('kanji', 300)
+quiz = db.getNextQuizItem()
+db.updateQuizItem(quiz, 2, datetime.now() + timedelta(hours=1))
+nextQuiz = db.getNextQuizItem()
+andOnceMore = db.getNextQuizItem()
+#TODO: add resetting session
+print 'yahoo!'
+'''
 '''
 kanji = u'空'
 db.addKanjiToDb(kanji)
 if not db.checkIfKanjiHasExamples(kanji):
     db.addSentenceToDb(kanji, u'空は青いね', u'Sky is blue, isn''t it')
 '''
-jlptGrade = 3
-db.addItemsToDbJlpt(jlptGrade)
-db.initializeCurrentSession('kanji', 300)
-quiz = db.getNextQuizItem()
-nextQuiz = db.getNextQuizItem()
-andOnceMore = db.getNextQuizItem()
-#TODO: add resetting session
-print 'yahoo!'

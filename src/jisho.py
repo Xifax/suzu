@@ -6,11 +6,14 @@ Created on Feb 7, 2011
 '''
 import urllib2, re#, thread
 from BeautifulSoup import BeautifulSoup
+from mParser.mecabTool import MecabTool
+from jcconv import kata2hira
 
 class JishoClient:
 
     @staticmethod
     def getExamples(query):
+        """Get examples for specified kanji or word from jisho.org"""
         HREF_ITER = 'href'
         UN_URL_PART = '/kanji/details/'
         EX_FOUND = 'Found'
@@ -37,3 +40,13 @@ class JishoClient:
                         r_trans.append(translation.contents[0].replace('\t',''))
                 
                 return dict(zip(r_sent, r_trans))
+            
+    #TODO: add search for kana converted words
+    #it's also possible to search in EDICT and get word reading
+    @staticmethod
+    def getExamplesKana(query):
+        return JishoClient.getExamples(kata2hira(''.join(MecabTool.parseToReadingsKana(query))))    #it works but slightly incorrect (mecab shenanigans)
+'''          
+test = JishoClient.getExamplesKana(u'軈て')
+print '\n'.join(test)
+'''
