@@ -82,12 +82,6 @@ class DBoMagic:
     
     def getNextQuizItem(self):          #mode and active check does not needed
         #TODO: implement witch great verve and so on!
-        #selection = Kanji.query.filter_by(current_session = True).all()
-        #selection.order_by(asc(Kanji.next_quiz))
-        #selection = Kanji.query.filter_by(current_session = True).order_by(asc(Kanji.next_quiz)).all()
-        #complicated!
-        #item = selection.query.first()
-        #for item in selection
         #TODO: check if item.next_quiz is the same for multiple items
         #...
         return  Kanji.query.filter_by(current_session = True).order_by(asc(Kanji.next_quiz)).first()
@@ -111,6 +105,7 @@ class DBoMagic:
         for item in random_selection:
             # mark n random items as 'current' 
             item.current_session = True
+            item.been_in_session = item.been_in_session + 1     #may be useful later on
             
         session.commit()
 
@@ -121,12 +116,15 @@ class DBoMagic:
             word.current_session = False    
         
         session.commit()
-
+    '''
     def updateQuizItem(self, item, newGrade, nextQuiz):
         
         item.leitner_grade = newGrade
         item.next_quiz = nextQuiz
         
+        session.commit()
+    '''
+    def updateQuizItem(self, item):
         session.commit()
         
     def updateQuizItemByValue(self, itemValue, newGrade, nextQuiz):
@@ -191,6 +189,26 @@ class DBoMagic:
             return True
         else:
             return False
+        
+    def findSimilarReading(self, kana):
+        size = len(kana) - 1
+        #size = len(kana) - 2
+        readings = []
+        
+        #selection = self.db.kunyomi_lookup.filter(self.db.kunyomi_lookup.reading.like(kana[0] + u'_' * size + kana[len(kana) - 1])).all()
+        selection = self.db.kunyomi_lookup.filter(self.db.kunyomi_lookup.reading.like(kana[0] + u'_' * size)).all()
+        
+        if len(selection) > 4:
+            #NB: magic constant!
+            rand = sample(selection, 4)
+            for read in rand:
+                readings.append(read.reading)
+                
+            #inserting correct readin at random position
+            readings[randrange(0, len(readings))] = kana
+        
+        return readings
+        #return selection[randrange(0, len(selection))]
     
     def addItemsToDbJlpt(self, jlptGrade):
         try:
@@ -232,11 +250,11 @@ class DBoMagic:
                             meaning_string += m.value + ';'
                 
                     Kanji(character = kanji.literal, tags = jlpt, reading_kun = kun_string, reading_on = on_string, meaning = meaning_string, 
-                          next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True)   #grade integer value
-                    #next_quiz -> may be const = timedate.now()
+                          next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True, current_session = False, been_in_session = 0)
                     
                     # for easier management
-                    #Kanji(character = kanji.literal, tags = jlpt, next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True)
+                    #Kanji(character = kanji.literal, tags = jlpt, next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True, 
+                    #current_session = False, been_in_session = 0)
                     
                 try: 
                     session.commit()
@@ -268,4 +286,11 @@ kanji = u'空'
 db.addKanjiToDb(kanji)
 if not db.checkIfKanjiHasExamples(kanji):
     db.addSentenceToDb(kanji, u'空は青いね', u'Sky is blue, isn''t it')
+'''
+'''
+db = DBoMagic()
+db.setupDB()
+
+reading = db.findSimilarReading(u'そ')
+print ' '.join(reading)
 '''

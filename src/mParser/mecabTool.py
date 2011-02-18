@@ -42,12 +42,4 @@ class MecabTool:
         for w in words:
             result.append(w['pronunciation'])
             
-        return result
-
-'''
-sentence = u'太郎はこの本を二郎を見た女性に渡した。'
-words = MecabTool.parseToWordsOnly(sentence)
-print '\n'.join(words)
-pronunciation = MecabTool.parseToReadingsKana(sentence)
-print ''.join(pronunciation)
-'''
+        return result    

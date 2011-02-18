@@ -8,18 +8,25 @@ Created on Feb 7, 2011
 from db import Kanji,Word,Example,DBoMagic
 from jisho import JishoClient
 from mParser.mecabTool import MecabTool
+from jcconv import kata2hira
+from leitner import Leitner
 
 class srsScheduler:
 
+    #NB: only kanji mode is working properly
+
     def __init__(self):
         self.db = DBoMagic()
-        
-        #items in terms of db classes
         
     def initializeCurrentSession(self, mode, sessionSize):
         self.currentItem = u''
         self.currentExample = u''
         self.db.setupDB()
+        
+        #FOR TEST DB INITIALIZATION ONLY
+        #self.db.addItemsToDbJlpt(3)
+        ######################
+        
         self.db.initializeCurrentSession(mode, sessionSize)
         
     def endCurrentSession(self):
@@ -29,53 +36,75 @@ class srsScheduler:
         """Get next quiz item reading, set current quiz item"""
         self.currentItem = self.db.getNextQuizItem()
         self.currentExample = u''
-        
-        return self.currentItem.character
+        #return self.currentItem.character
     
     def getCurrentItem(self):
+        """Returns kanji itself"""
         return self.currentItem.character
     
-    def getExample(self, item):
-        return u'空は青いね'
+    def getCurrentItemKanji(self):
+        """Returns kanji with all information"""
+        return self.currentItem
      
     def getCurrentExample(self):
         if not self.db.checkIfKanjiHasExamples(self.currentItem):
             #NB: how about some threading and queues?
-            #examples = JishoClient.getExamples(item)
             self.db.addExamplesForKanji(self.currentItem, JishoClient.getExamples(self.currentItem.character))
 
         self.currentExample =  self.db.getExample(self.currentItem) 
         return self.currentExample.sentence
-        #return db.getExample(self.currentItem)            
     
     def parseCurrentExample(self):
         return MecabTool.parseToWordsOnly(self.currentExample.sentence)
     
-    #TODO: work with EDICT and etc
-    def getQuizVariants(self,item):
-        return [u'そら',u'から',u'てら',u'くく',]
-    
-    def getCorrectAnswer(self,item):
-        return u'そら'
-    
-    def getSentenceTranslation(self):
-        return self.currentExample.translation
+    def geCurrentSentenceReading(self):
+        return kata2hira(''.join(MecabTool.parseToReadingsKana(self.currentExample.sentence)))
     
     def getCurrentSentenceTranslation(self):
         return self.currentExample.translation
+
+    def getQuizVariants(self):
+        return self.db.findSimilarReading(self.getCorrectAnswer())
     
-    def geCurrentSentenceReading(self):
-        return ''.join(MecabTool.parseToReadingsKana(self.currentExample.sentence))
+    '''    #does not parse the word itself 
+    def getCorrectAnswer(self):
+        return kata2hira(''.join(MecabTool.parseToReadingsKana(self.currentItem.character)))
+    '''
+    def answeredWrong(self):
+        self.currentItem.leitner_grade = Leitner.grades.None.index
+        self.currentItem.next_quiz = Leitner.nextQuiz(self.currentItem.leitner_grade)
+        self.db.updateQuizItem(self.currentItem)
+        
+    def answeredCorrect(self):
+        self.currentItem.leitner_grade = self.currentItem.leitner_grade + 1
+        self.currentItem.next_quiz = Leitner.nextQuiz(self.currentItem.leitner_grade)
+        self.db.updateQuizItem(self.currentItem)
+    
+    def getCorrectAnswer(self):
+        words = MecabTool.parseToWordsFull(self.currentExample.sentence)
+        answer = self.find(lambda word: self.currentItem.character in word['word'] , words)
+        return kata2hira(answer['pronunciation'])
+    
+    def getWordFromExample(self):
+        words = MecabTool.parseToWordsFull(self.currentExample.sentence)
+        answer = self.find(lambda word: self.currentItem.character in word['word'] , words)
+        return answer['word']
+    
+    def find(self, f, seq):
+        """Return first item in sequence where f(item) == True."""
+        for item in seq:
+            if f(item): 
+                return item
+        
 '''
-db = DBoMagic()
-db.setupDB()
-jlptGrade = 3
-db.addItemsToDbJlpt(jlptGrade)
-print db.checkIfKanjiHasExamplesByValue(u'画')
-print 'lalala'
-'''
-'''
-test = srsScheduler()
-test.initializeCurrentSession('kanji', 300)
-print test.getNextItem()
+srs = srsScheduler()
+srs.initializeCurrentSession('kanji', 300)
+print srs.getNextItem()
+print srs.getCurrentExample()
+answer = srs.getCorrectAnswer()
+print answer
+quiz = srs.getQuizVariants()
+print ' '.join(quiz)
+srs.answeredCorrect()
+print '!'
 '''

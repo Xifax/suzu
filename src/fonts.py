@@ -18,6 +18,6 @@ class Fonts:
         #FOT-マティスみのりやまとPro M
         MatisuMinoriyamatoProM = u'FOT-マティスみのりやまとPro M'
         #ヒラギノ丸ゴ Pro W4
-        HiragiNoMarugotoProW4 = u'ヒラギノ丸ゴ Pro W4'    #!
+        HiragiNoMarugotoProW4 = u'ヒラギノ丸ゴ Pro W4'    # favorite best
         #ヒラギノ明朝 Pro W3
         HiragiNoMyoutyouProW3 = u'ヒラギノ明朝 Pro W3'    #!

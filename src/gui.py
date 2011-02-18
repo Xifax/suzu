@@ -15,15 +15,33 @@ from options import Options
 from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent 
 from PySide.QtGui import *  #TODO: fix to parsimonious imports
 
+#TODO: fix forced builtins in Aptana settings
+from cjktools.resources.radkdict import RadkDict
+from pkg_resources import resource_filename
+from cjktools.resources import auto_format
+from cjktools import scripts
+
 class Filter(QObject):
     def eventFilter(self, object, event):
 
         if event.type() == QEvent.HoverLeave:
             object.setStyleSheet("QLabel { color: rgb(0, 0, 0); }")
+            quiz.info.hide()
 
         if event.type() == QEvent.HoverEnter:
             object.setStyleSheet("QLabel { color: rgb(0, 5, 255); }")
-            print object.text()
+            quiz.info.item.setText(object.text())
+            #parse word
+            script = scripts.script_boundaries(object.text())
+            components = []
+            for cluster in script:
+                if scripts.script_type(cluster) == scripts.Script.Kanji:
+                    for kanji in cluster:
+                        components = components + list(quiz.rdk[kanji])
+                
+            quiz.info.components.setText(' '.join(components))
+            
+            quiz.info.show()
             
         return False
 
@@ -32,9 +50,32 @@ class Quiz(QFrame):
     def __init__(self, parent=None):
         super(Quiz, self).__init__(parent)
 
-        # kanji info
+        """Session Info"""
+        self.status = QFrame()
+        #session message
+        self.status.message = QLabel(u'')
+        self.status.layout = QHBoxLayout()
+        self.status.layout.addWidget(self.status.message)
+        self.status.setLayout(self.status.layout)
+
+        """Items Info"""
         self.info = QFrame()
+        #large item
+        self.info.item = QLabel(u'')
+        #radikals or/and kanji components
+        self.info.components = QLabel(u'')
+        #readings
+        self.info.reading = QLabel(u'')
+        self.info.layout = QVBoxLayout()
+        self.info.layout.addWidget(self.info.item)
+        self.info.layout.addWidget(self.info.components)
+        self.info.layout.addWidget(self.info.reading)
+        self.info.setLayout(self.info.layout)
         
+        """Flags"""
+        self.correct = False
+        
+        """Quiz Dialog"""
         self.filter = Filter()
 
         self.countdown = QProgressBar()
@@ -78,11 +119,19 @@ class Quiz(QFrame):
         self.countdownTimer.setSingleShot(True)
         self.countdownTimer.timeout.connect(self.timeIsOut)
         
+        """Pre-initialization"""
         self.animationTimer = ()
         self.progressTimer = ()
+        self.grid_layout =()
+        #self.labels = []
                        
         #initialize options
         self.options = Options()
+        
+        #initialize dictionaries    (will take a lot of time!)
+        self.rdk = RadkDict()
+        edict_file = resource_filename('cjktools_data', 'dict/je_edict')
+        self.edict = auto_format.load_dictionary(edict_file)
         
         #config here
         self.initializeComposition()
@@ -100,12 +149,16 @@ class Quiz(QFrame):
             self.trayIcon.setToolTip('Quiz has started automatically!')
         else:
             self.trayIcon.setToolTip('Quiz is not initiated!')
+            
+        #test here:
+        #self.status.show()
     
     def waitUntilNextTimeslot(self):
         #self.nextQuizTimer.start(10000) #10 seconds for testing purposes
         self.nextQuizTimer.start(self.options.getRepetitionInterval() * 60 * 1000)  #options are in minutes
         
     def beginCountdown(self):
+        self.trayIcon.setToolTip('Quiz in progress!')
         self.countdownTimer.start(10000)
 
         self.progressTimer = RepeatTimer(0.01, self.updateCountdownBar, 1000)
@@ -120,23 +173,46 @@ class Quiz(QFrame):
         #TODO: may or may not want to control dialog size according to text size
         D_WIDTH = 500
         D_HEIGHT = 176#136
+        
+        I_WIDTH = D_HEIGHT
+        I_HEIGHT = I_WIDTH
+        I_INDENT = 2
+        
+        S_WIDTH = D_WIDTH
+        S_HEIGHT = 48           #NB: somehow, size does not change!
+        S_INDENT = I_INDENT
+        S_CORRECTION = 0
 
         #down right corner position
         H_INDENT = D_WIDTH + 10 #indent from right
         V_INDENT = D_HEIGHT + 40 #indent from bottom
         
+        """Main Dialog"""
         self.setWindowFlags(Qt.FramelessWindowHint) #and Qt.WindowStaysOnTopHint)
         self.setFocusPolicy(Qt.StrongFocus)
         self.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
-        #self.setFont(QFont(Fonts.SazanamiMyoutyou, 12))
         self.setFont(QFont(Fonts.SyoutyouProEl, 16))
 
-        #self.setWindowOpacity(0.88)
         desktop = QApplication.desktop().screenGeometry()
         self.setGeometry(QRect(desktop.width() - H_INDENT, desktop.height() - V_INDENT, D_WIDTH, D_HEIGHT))
         
         self.setStyleSheet("QWidget { background-color: rgb(255, 255,255); }")
-                
+        
+        """Info dialog"""
+        self.info.setWindowFlags(Qt.FramelessWindowHint)
+        self.info.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
+        self.info.setGeometry(QRect(desktop.width() - H_INDENT - I_WIDTH - I_INDENT, desktop.height() - V_INDENT, I_WIDTH, I_HEIGHT))
+        self.info.setWindowOpacity(0.80)
+        
+        self.info.setStyleSheet("QWidget { background-color: rgb(255, 255,255); }")
+        
+        """Session message"""
+        self.status.setWindowFlags(Qt.FramelessWindowHint)
+        self.status.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
+        self.status.setGeometry(QRect(desktop.width() - H_INDENT, desktop.height() - V_INDENT - S_HEIGHT - S_INDENT - S_CORRECTION, S_WIDTH, S_HEIGHT))
+        
+        self.status.setStyleSheet("QWidget { background-color: rgb(255, 255,255); }")
+
     def fade(self):
         if self.windowOpacity() == 1:
             self.animationTimer = RepeatTimer(0.025,self.fadeOut,40)
@@ -153,7 +229,7 @@ class Quiz(QFrame):
         
     def initializeComponents(self):
         self.countdown.setMaximumHeight(6)
-        self.countdown.setRange(0,1000)
+        self.countdown.setRange(0, 1000)
         self.countdown.setTextVisible(False)
         self.countdown.setStyleSheet("QProgressbar { background-color: rgb(255, 255, 255); }")
         
@@ -162,33 +238,45 @@ class Quiz(QFrame):
         self.sentence.setFont(QFont(Fonts.HiragiNoMarugotoProW4, 18))
         #self.sentence.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))            #NB: does not work as it should!
         
-        #self.var_1st.setStyleSheet("QWidget { border: 1px solid red;}")
-
-        #self.sentence.setStyleSheet("QWidget {border:1px solid rgb(255, 170, 255); }")
-        #self.sentence.setFont(QFont(u'小塚明朝 Pro EL', 12))
-        #self.sentence.setFont(QFont(u'メイリオ', 12))
-        #self.sentence.font().setStyleStrategy(QFont.PreferQuality)
-        
         self.sentence.setWordWrap(True)
         self.trayIcon.setIcon(QIcon('../res/cards.ico'))
         
+        self.status.message.setFont(QFont('Cambria', 12))
+        self.status.layout.setAlignment(Qt.AlignCenter)
+        
+        self.info.item.setFont(QFont(Fonts.SazanamiMyoutyou, 33))
+        self.info.item.setWordWrap(True)
+        self.info.layout.setAlignment(Qt.AlignCenter)
+        
     def updateContent(self):
+        
+        if self.grid_layout != ():
+            for i in range(0, self.grid_layout.count()):
+                    self.grid_layout.itemAt(i).widget().hide()
+                    #self.grid_layout.removeWidget(self.grid_layout.itemAt(i).widget())
+                    #self.grid_layout.itemAt(i).widget().setParent(None)
+            self.layout_vertical.removeItem(self.grid_layout)
+            self.grid_layout.setParent(None)
+            #self.labels = []
+            self.update()
+        if self.sentence.isHidden():    
+            self.sentence.show()
         self.showButtonsQuiz()
         
-        currentQuiz = self.srs.getNextItem()
+        #currentQuiz = self.srs.getNextItem()
+        
+        self.srs.getNextItem()
               
-        example = self.srs.getCurrentExample().replace(currentQuiz, u"<font color='blue'>" + currentQuiz + u"</font>")
+        example = self.srs.getCurrentExample().replace(self.srs.getWordFromExample(), u"<font color='blue'>" + self.srs.getWordFromExample() + u"</font>")
         self.sentence.setText(example)
         
-        '''
-        readings = self.srs.getQuizVariants(self.srs.getCurrentItem())
+        readings = self.srs.getQuizVariants()
         
         if len(readings) == 4:
             self.var_1st.setText(readings[0])
             self.var_2nd.setText(readings[1])
             self.var_3rd.setText(readings[2])
             self.var_4th.setText(readings[3])
-        '''
         
     def getReadyPostLayout(self):
         #NB: DANGEROUS stuff ahead!
@@ -221,32 +309,29 @@ class Quiz(QFrame):
             if j <= n: j = j + c
             else: j = 0; i = i + 1
         
-        #self.grid_layout.setSizeConstraint(self.grid_layout.SetFixedSize)
-        self.grid_layout.setAlignment(Qt.AlignCenter)           #EURECA!!!
+        self.grid_layout.setAlignment(Qt.AlignCenter)
         self.layout_vertical.insertLayout(1, self.grid_layout)
-        #self.layout_vertical.setStretchFactor(self.grid_layout, 10)
 
-        #self.setLayout(self.grid_layout)
         self.update()
         
     def setButtonsActions(self):
 
-        if self.var_1st.text() == self.srs.getCorrectAnswer(self.srs.getCurrentItem()):
+        if self.var_1st.text() == self.srs.getCorrectAnswer():
                 self.var_1st.clicked.connect(self.correctAnswer)
         else:
                 self.var_1st.clicked.connect(self.wrongAnswer)
                
-        if self.var_2nd.text() == self.srs.getCorrectAnswer(self.srs.getCurrentItem()):
+        if self.var_2nd.text() == self.srs.getCorrectAnswer():
                 self.var_2nd.clicked.connect(self.correctAnswer)
         else:
                 self.var_2nd.clicked.connect(self.wrongAnswer)
                 
-        if self.var_3rd.text() == self.srs.getCorrectAnswer(self.srs.getCurrentItem()):
+        if self.var_3rd.text() == self.srs.getCorrectAnswer():
                 self.var_3rd.clicked.connect(self.correctAnswer)
         else:
                 self.var_3rd.clicked.connect(self.wrongAnswer)
                 
-        if self.var_4th.text() == self.srs.getCorrectAnswer(self.srs.getCurrentItem()):
+        if self.var_4th.text() == self.srs.getCorrectAnswer():
                 self.var_4th.clicked.connect(self.correctAnswer)
         else:
                 self.var_4th.clicked.connect(self.wrongAnswer)
@@ -281,28 +366,37 @@ class Quiz(QFrame):
         
     def correctAnswer(self):
         self.stopCountdown()
-        print 'correct!'
-        self.hideButtonsQuiz()
-        self.answered.setText(u'Correct!')
-        
-        #self.hideQuizAndWaitForNext() # -> temporarily
-        
-    def wrongAnswer(self):
-        self.stopCountdown()
-        print 'wrong!'
         self.hideButtonsQuiz()
         
         self.getReadyPostLayout()
-        #self.answered.setText(u'Wrong! Correct answer is:' + self.srs.getCorrectAnswer(self.srs.getCurrentItem()))
-        #self.hideQuizAndWaitForNext()
+        self.answered.setText(u'Correct! (' + self.srs.getCorrectAnswer() + ')')
+        self.correct = True
+        
+        self.showSessionMessage(self.srs.getCurrentSentenceTranslation())       #NB: trial attempt
+        #self.srs.answeredCorrect()
+        
+    def wrongAnswer(self):
+        self.stopCountdown()
+        self.hideButtonsQuiz()
+        
+        self.getReadyPostLayout()
+        self.answered.setText(u'Wrong! Correct answer is:' + self.srs.getCorrectAnswer())
+        self.correct = False
+        #self.srs.answeredWrong()
         
     def timeIsOut(self):
-        print 'timeout'
-        QTimer.singleShot(50,self.hideButtonsQuiz)     #to prevent recursive repaint when mouse is suddenly over appearing button
+        QTimer.singleShot(50, self.hideButtonsQuiz)     #to prevent recursive repaint when mouse is suddenly over appearing button
         #self.hideButtonsQuiz()
-        self.answered.setText(u'Time is out! Correct answer is:' + self.srs.getCorrectAnswer(self.srs.getCurrentItem()))
+        self.answered.setText(u'Time is out! Correct answer is:' + self.srs.getCorrectAnswer())
             
     def hideQuizAndWaitForNext(self):
+        
+        if self.correct:
+            self.srs.answeredCorrect()
+        else:
+            self.srs.answeredWrong()
+        self.correct = False
+        
         self.resetButtonsActions()
         
         self.setWindowOpacity(1)
@@ -334,7 +428,8 @@ class Quiz(QFrame):
                 self.pauseAction.setText('&Pause')
                 self.trayIcon.setToolTip('Quiz in progress!')
         else:
-            print 'Sorry, cannot pause while quiz in progress!'
+            #print 'Sorry, cannot pause while quiz in progress!'
+            self.showSessionMessage(u'Sorry, cannot pause while quiz in progress!')
  
     def showQuiz(self):
         if self.isHidden():
@@ -348,13 +443,20 @@ class Quiz(QFrame):
             self.countdown.setValue(1000) #TODO: no magic constant!
             self.beginCountdown()
         else:
-            print 'Already quizZzing!'
+            #print 'Already quizZzing!'
+            self.showSessionMessage(u'Quiz is already underway!')
          
     def showOptions(self):
         print 'here be options!'
         
     def showAbout(self):
         print 'about, yeah'
+        
+    def showSessionMessage(self, message):
+        """Shows info message"""
+        self.status.message.setText(message)
+        self.status.show()
+        QTimer.singleShot(5000, self.status.hide)
  
     def saveAndExit(self):
         #TODO: check if it really works as it should
@@ -370,16 +472,6 @@ class Quiz(QFrame):
         self.trayIcon.hide()
         self.close()
             
-class Sentence(QWidget):
-    def __init__(self, parent=Quiz):
-        super(Sentence, self).__init__(parent)
-    #standalone widget for sentence
-    
-class Info(QWidget):
-    def __init__(self, parent=Quiz):
-        super(Sentence, self).__init__(parent)
-    #standalone wiget for items info
-
 if __name__ == '__main__':
 
     app = QApplication(sys.argv)
