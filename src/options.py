@@ -14,13 +14,17 @@ class Options:
         self.APP_NAME = 'suzu'             #輪廻／りんね or 鈴ね
         
         #default settings
-        self.OPTIONS = [('SFont',           #sentences fonts
+        self.OPTIONS = [('SFont',           #sentences font
                 {'name' : u'ヒラギノ丸ゴ Pro W4',
                  'size' : 18,
                  }),
-                 ('QFont',                  #quiz answers fonts
+                 ('QFont',                  #quiz answers font
                   {'name' : u'小塚明朝 Pro EL',
-                   'size' : 16,
+                   'size' : 13,
+                   }),
+                  ('IFont',                  #messages font
+                  {'name' : u'Cambria',
+                   'size' : 12,
                    }),
                  ('Intervals',              #time constraints
                   {'repetition' : 1,        #minutes
@@ -48,6 +52,15 @@ class Options:
     
     def getSentenceFontSize(self):
         return self.CONFIG.get('SFont', 'size')
+    
+    def getQuizFontSize(self):
+        return self.CONFIG.get('QFont', 'size')
+    
+    def getMessageFont(self):
+        return self.CONFIG.get('IFont', 'name')
+    
+    def getMessageFontSize(self):
+        return self.CONFIG.get('IFont', 'size')
     
     def getRepetitionInterval(self):
         return self.CONFIG.get('Intervals', 'repetition')

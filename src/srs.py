@@ -90,11 +90,21 @@ class srsScheduler:
         answer = self.find(lambda word: self.currentItem.character in word['word'] , words)
         return answer['word']
     
+    # get reading based on word from parse results?
+    def getWordPronunciationFromExample(self, item):
+        words = MecabTool.parseToWordsFull(self.currentExample.sentence)
+        answer = self.find(lambda word: item in word['word'] , words)
+        return kata2hira(answer['pronunciation'])
+    
     def find(self, f, seq):
         """Return first item in sequence where f(item) == True."""
         for item in seq:
             if f(item): 
                 return item
+            
+    def getParsedExampleInFull(self):
+        return MecabTool.parseToWordsFull(self.currentExample.sentence)
+    
         
 '''
 srs = srsScheduler()

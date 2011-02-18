@@ -8,12 +8,12 @@ Created on Feb 12, 2011
 from sqlalchemy.ext.sqlsoup import SqlSoup
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy import and_, asc
+from sqlalchemy import asc
 from elixir import Entity,Field,Unicode,Integer,TIMESTAMP,ManyToMany,\
 metadata,session,create_all,setup_all,BOOLEAN
 
 #import time
-from datetime import datetime, timedelta
+from datetime import datetime
 import os.path
 from random import shuffle, sample, randrange
 
@@ -22,13 +22,14 @@ from leitner import Leitner
 class Kanji(Entity):
     character = Field(Unicode(1))
     tags = Field(Unicode(128))
-    reading_kun = Field(Unicode(128))       #is this even necessary?
-    reading_on = Field(Unicode(128))
-    meaning = Field(Unicode(128))
+    #reading_kun = Field(Unicode(128))       #is this even necessary?
+    #reading_on = Field(Unicode(128))
+    #meaning = Field(Unicode(128))
     
     # srs params for kanji mode
     next_quiz = Field(TIMESTAMP)
     leitner_grade = Field(Integer)
+    # session params
     active = Field(BOOLEAN)
     current_session = Field(BOOLEAN)
     been_in_session = Field(Integer)        #for statistics and control
@@ -39,12 +40,13 @@ class Kanji(Entity):
     
 class Word(Entity):
     word = Field(Unicode(16))
-    reading = Field(Unicode(16))
-    meaning = Field(Unicode(128))
+    #reading = Field(Unicode(16))
+    #meaning = Field(Unicode(128))
     
     # srs params for words mode
     next_quiz = Field(TIMESTAMP)
     leitner_deck = Field(Integer)
+    # session params
     active = Field(BOOLEAN)
     current_session = Field(BOOLEAN)
     been_in_session = Field(Integer) 
@@ -225,6 +227,7 @@ class DBoMagic:
                     # VERY time consuming
                     #_now = time.time()
                     # in theory, it can be thrown away
+                    '''
                     readings_kun = self.db.reading.filter(and_(self.db.reading.fk==kanji.id, self.db.reading.type=='ja_kun')).all()
                     readings_on = self.db.reading.filter(and_(self.db.reading.fk==kanji.id, self.db.reading.type=='ja_on')).all()
                     meaning = self.db.meaning.filter(and_(self.db.meaning.fk==kanji.id, self.db.meaning.lang=='en')).all()
@@ -251,10 +254,10 @@ class DBoMagic:
                 
                     Kanji(character = kanji.literal, tags = jlpt, reading_kun = kun_string, reading_on = on_string, meaning = meaning_string, 
                           next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True, current_session = False, been_in_session = 0)
-                    
+                    '''
                     # for easier management
-                    #Kanji(character = kanji.literal, tags = jlpt, next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True, 
-                    #current_session = False, been_in_session = 0)
+                    Kanji(character = kanji.literal, tags = jlpt, next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True, 
+                    current_session = False, been_in_session = 0)
                     
                 try: 
                     session.commit()
