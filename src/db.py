@@ -16,6 +16,7 @@ metadata,session,create_all,setup_all,BOOLEAN
 from datetime import datetime
 import os.path
 from random import shuffle, sample, randrange
+from itertools import permutations
 
 from leitner import Leitner
 
@@ -45,7 +46,7 @@ class Word(Entity):
     
     # srs params for words mode
     next_quiz = Field(TIMESTAMP)
-    leitner_deck = Field(Integer)
+    leitner_grade = Field(Integer)
     # session params
     active = Field(BOOLEAN)
     current_session = Field(BOOLEAN)
@@ -118,17 +119,10 @@ class DBoMagic:
             word.current_session = False    
         
         session.commit()
-    '''
-    def updateQuizItem(self, item, newGrade, nextQuiz):
-        
-        item.leitner_grade = newGrade
-        item.next_quiz = nextQuiz
-        
-        session.commit()
-    '''
+
     def updateQuizItem(self, item):
         session.commit()
-        
+    '''    
     def updateQuizItemByValue(self, itemValue, newGrade, nextQuiz):
         
         result = Kanji.query.filter_by(character = itemValue).all()
@@ -142,7 +136,7 @@ class DBoMagic:
                 result[0].next_quiz = nextQuiz
                 
         session.commit()
-       
+    '''   
     def addKanjiToDb(self, character):
         Kanji(character = character)
         session.commit()
@@ -151,6 +145,14 @@ class DBoMagic:
         Kanji.query.filter_by(character = kanji).one().example.append(Example(sentence = sentence,translation = translation))          #or get_by
         #k.example.append(Example(sentence = sentence,translation = translation)) 
         session.commit()
+        
+    def addWordToDb(self, kanji, word):
+        """Adds word corresponding to kanji from quiz/example"""
+        if len(word) > 1:
+            if(len(Word.query.filter_by(word = word).all()) == 0):
+                kanji.word.append(Word(word = word, next_quiz = datetime.now(), leitner_grade = Leitner.grades.None.index, active = True, 
+                    current_session = False, been_in_session = 0))
+                session.commit()
     
     def addExamplesForKanji(self, kanji, examples):
         for example in examples:
@@ -162,6 +164,7 @@ class DBoMagic:
         return examples[randrange(0, len(examples))]
         
     #TODO: throw away unneeded implementation
+    '''
     def checkIfKanjiHasExamplesByValue(self, kanjiValue):
         try:
             if len(Kanji.query.filter_by(character = kanjiValue).one().example) > 0:
@@ -179,7 +182,7 @@ class DBoMagic:
                 return False
         except NoResultFound:
             return False
-        
+    '''    
     def checkIfKanjiHasWords(self, kanji):
         if len(kanji.word) > 0:
             return True
@@ -200,14 +203,28 @@ class DBoMagic:
         #selection = self.db.kunyomi_lookup.filter(self.db.kunyomi_lookup.reading.like(kana[0] + u'_' * size + kana[len(kana) - 1])).all()
         selection = self.db.kunyomi_lookup.filter(self.db.kunyomi_lookup.reading.like(kana[0] + u'_' * size)).all()
         
-        if len(selection) > 4:
+        if len(selection) >= 4:
             #NB: magic constant!
             rand = sample(selection, 4)
             for read in rand:
                 readings.append(read.reading)
                 
-            #inserting correct readin at random position
-            readings[randrange(0, len(readings))] = kana
+        else:
+            #TODO: think of something neat!
+            perm = list(map(''.join, permutations(kana)))
+            if len(perm) >= 4:
+                readings = sample(perm, 4)
+            else:
+                kanaTable = [u'あ',u'い',u'ゆ',u'や',u'ら',u'り',u'る',u'れ',u'ろ',u'ま',u'む',u'み',u'め',u'も',u'な',u'に',u'ぬ',u'ね',u'の']    #TODO: something!!!11
+                i = 0; variant = u''
+                while i < 4:
+                    j = 0
+                    while j < size:
+                        variant += kanaTable[randrange(0, len(kanaTable))];    j = j + 1
+                    readings.append(variant);   variant = u'';  i = i + 1
+                
+        #inserting correct reading at random position
+        readings[randrange(0, len(readings))] = kana
         
         return readings
         #return selection[randrange(0, len(selection))]
@@ -262,7 +279,7 @@ class DBoMagic:
                 try: 
                     session.commit()
                 except IntegrityError:
-                    print 'Already in db'
+                    #print 'Already in db'
                     session.rollback()      #is it ok?
         except ValueError:
             print 'oops'    #TODO: add logger

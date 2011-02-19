@@ -24,7 +24,7 @@ class srsScheduler:
         self.db.setupDB()
         
         #FOR TEST DB INITIALIZATION ONLY
-        #self.db.addItemsToDbJlpt(3)
+        self.db.addItemsToDbJlpt(3)
         ######################
         
         self.db.initializeCurrentSession(mode, sessionSize)
@@ -52,12 +52,14 @@ class srsScheduler:
             self.db.addExamplesForKanji(self.currentItem, JishoClient.getExamples(self.currentItem.character))
 
         self.currentExample =  self.db.getExample(self.currentItem) 
+        ## add corresponding word to db
+        self.db.addWordToDb(self.currentItem, self.getWordFromExample())
         return self.currentExample.sentence
     
     def parseCurrentExample(self):
         return MecabTool.parseToWordsOnly(self.currentExample.sentence)
     
-    def geCurrentSentenceReading(self):
+    def getCurrentSentenceReading(self):
         return kata2hira(''.join(MecabTool.parseToReadingsKana(self.currentExample.sentence)))
     
     def getCurrentSentenceTranslation(self):
@@ -76,8 +78,10 @@ class srsScheduler:
         self.db.updateQuizItem(self.currentItem)
         
     def answeredCorrect(self):
-        self.currentItem.leitner_grade = self.currentItem.leitner_grade + 1
+        if self.currentItem.leitner_grade != Leitner.grades.Shelved.index:
+            self.currentItem.leitner_grade = self.currentItem.leitner_grade + 1            
         self.currentItem.next_quiz = Leitner.nextQuiz(self.currentItem.leitner_grade)
+        
         self.db.updateQuizItem(self.currentItem)
     
     def getCorrectAnswer(self):
@@ -105,7 +109,9 @@ class srsScheduler:
     def getParsedExampleInFull(self):
         return MecabTool.parseToWordsFull(self.currentExample.sentence)
     
-        
+    def getNextQuizTime(self):
+        return self.currentItem.next_quiz.strftime('%d %b %H:%M:%S')#('%d %b %H:%M:%S (%Y)')
+    
 '''
 srs = srsScheduler()
 srs.initializeCurrentSession('kanji', 300)

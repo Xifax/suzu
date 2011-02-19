@@ -75,16 +75,25 @@ class Filter(QObject):
             quiz.info.components.setText(' '.join(components))
             
             #looking up translation    #TODO: show translation only when left/right button is pressed (otherwise, show just main translation)
+            '''
             try:
                 search = quiz.edict[object.text()]
-                quiz.info.translation.setText(' '.join(search.senses))
+                #quiz.info.translation.setText(' '.join(search.senses))        #NB: TOO MUCH!
+                quiz.info.translation.setText(search.senses_by_reading()[quiz.srs.getWordPronunciationFromExample(object.text())][0])
             except:
                 quiz.info.translation.setText('')
+            '''
             
             quiz.info.show()
-            
+
             if event.type() == QEvent.MouseButtonPress:
-                print 'lalala'      #TODO: show big box with readings
+                quiz.info.hide()
+                #print 'lalala'      #TODO: show big box with readings
+                #u'空'.encode('utf-8').encode('hex')
+                #[f for f in fileList if f.find(u'空'.encode('utf-8').encode('hex') + '.gif') > -1]
+                
+                #path = '../res/kanji/' + kanji.encode('utf-8').encode('hex') + '.gif'
+            print event.type()
             
         return False
 
@@ -138,8 +147,12 @@ class Quiz(QFrame):
         self.info.layout.addWidget(self.info.translation)
         self.info.setLayout(self.info.layout)
         
+        """Verbose Info"""
+        self.allInfo = QFrame()
+        #self.allInfo.
+        
         """Global Flags"""
-        self.correct = False
+        #self.correct = False
         
         """Quiz Dialog"""
         self.filter = Filter()
@@ -196,7 +209,7 @@ class Quiz(QFrame):
         self.rdk = RadkDict()
         edict_file = resource_filename('cjktools_data', 'dict/je_edict')
         self.edict = auto_format.load_dictionary(edict_file)
-        self.kjd = kanjidic.Kanjidic()
+        #self.kjd = kanjidic.Kanjidic()
         
         """Config Here"""
         self.initializeComposition()
@@ -223,11 +236,12 @@ class Quiz(QFrame):
 
     def initializeComposition(self):
         #TODO: may or may not want to control dialog size according to text size
-        D_WIDTH = 500
+        D_WIDTH = 550
         D_HEIGHT = 176#136
         
-        I_WIDTH = D_HEIGHT
-        I_HEIGHT = I_WIDTH
+        #I_WIDTH = D_HEIGHT
+        I_WIDTH = 200
+        I_HEIGHT = D_HEIGHT
         I_INDENT = 2
         
         S_WIDTH = D_WIDTH
@@ -243,7 +257,8 @@ class Quiz(QFrame):
         self.setWindowFlags(Qt.FramelessWindowHint) #and Qt.WindowStaysOnTopHint)    NB:changes widget to window
         self.setFocusPolicy(Qt.StrongFocus)
         self.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
-        self.setFont(QFont(Fonts.SyoutyouProEl, self.options.getQuizFontSize()))
+        #Font will appear in buttons
+        self.setFont(QFont(Fonts.HiragiNoMyoutyouProW3, self.options.getQuizFontSize()))
 
         desktop = QApplication.desktop().screenGeometry()
         self.setGeometry(QRect(desktop.width() - H_INDENT, desktop.height() - V_INDENT, D_WIDTH, D_HEIGHT))
@@ -285,7 +300,7 @@ class Quiz(QFrame):
         self.status.message.setWordWrap(False)
         self.status.layout.setMargin(0)
         
-        self.info.item.setFont(QFont(Fonts.HiragiNoMyoutyouProW3, 33))
+        self.info.item.setFont(QFont(Fonts.HiragiNoMyoutyouProW3, 36))
         self.info.reading.setFont(QFont(Fonts.HiragiNoMyoutyouProW3, 16))
         self.info.components.setFont((QFont(Fonts.HiragiNoMyoutyouProW3, 14)))
         self.info.item.setWordWrap(True)
@@ -389,6 +404,7 @@ class Quiz(QFrame):
 ####################################
 
     def waitUntilNextTimeslot(self):
+        #if self.nextQuizTimer.isActive():   self.nextQuizTimer.stop()
         self.nextQuizTimer.start(self.options.getRepetitionInterval() * 60 * 1000)  #options are in minutes    NB: how do neatly I convert minutes to ms?
         
     def beginCountdown(self):
@@ -424,7 +440,12 @@ class Quiz(QFrame):
         
     def timeIsOut(self):
         QTimer.singleShot(50, self.hideButtonsQuiz)     #NB: slight artificial lag to prevent recursive repaint crush, when mouse is suddenly over appearing button
-        self.showSessionMessage(u'Time is out! Correct answer is:' + self.srs.getCorrectAnswer())
+        self.getReadyPostLayout()
+        self.srs.answeredWrong()
+
+        #self.showSessionMessage(u'Time is out! Correct answer is:' + self.srs.getCorrectAnswer())
+        self.showSessionMessage(u'Timeout! Should be: ' + self.srs.getCorrectAnswer() + ' - Next quiz: ' + self.srs.getNextQuizTime())
+        self.answered.setFont(QFont('Calibri', 11))
         self.answered.setText(self.srs.getCurrentSentenceTranslation())
         
 ####################################
@@ -476,34 +497,25 @@ class Quiz(QFrame):
         self.hideButtonsQuiz()
         
         self.getReadyPostLayout()
-        #self.answered.setText(u'Correct! (' + self.srs.getCorrectAnswer() + ')')
-        self.correct = True
         
+        self.srs.answeredCorrect()
+        #self.answered.setText(u"<font='Cambria'>" + self.srs.getCurrentSentenceTranslation() + "</font>")
         self.answered.setText(self.srs.getCurrentSentenceTranslation())
-        self.showSessionMessage(u'Correct! (' + self.srs.getCorrectAnswer() + ')')
-        
-        #self.showSessionMessage(self.srs.getCurrentSentenceTranslation())       #NB: test attempt
+        self.answered.setFont(QFont('Calibri', 11))
+        self.showSessionMessage(u'Correct: ' + self.srs.getCorrectAnswer() + ' - Next quiz: ' + self.srs.getNextQuizTime())
         
     def wrongAnswer(self):
         self.stopCountdown()
         self.hideButtonsQuiz()
         
         self.getReadyPostLayout()
-        #self.answered.setText(u'Wrong! Correct answer is:' + self.srs.getCorrectAnswer())
-        self.correct = False
         
+        self.srs.answeredWrong()
         self.answered.setText(self.srs.getCurrentSentenceTranslation())
-        self.showSessionMessage(u'Wrong! Correct answer is:' + self.srs.getCorrectAnswer())
-
-        #self.showSessionMessage(self.srs.getCurrentSentenceTranslation())       #NB: test attempt
+        self.answered.setFont(QFont('Calibri', 11))
+        self.showSessionMessage(u'Wrong! Should be: ' + self.srs.getCorrectAnswer() + ' - Next quiz: ' + self.srs.getNextQuizTime())
             
     def hideQuizAndWaitForNext(self):
-        
-        if self.correct:
-            self.srs.answeredCorrect()
-        else:
-            self.srs.answeredWrong()
-        self.correct = False
         
         self.status.hide()
         self.resetButtonsActions()
@@ -538,6 +550,8 @@ class Quiz(QFrame):
 
             self.countdown.setValue(self.options.getCountdownInterval() * 100)
             self.beginCountdown()
+            
+            if self.nextQuizTimer.isActive():   self.nextQuizTimer.stop()
         else:
             self.showSessionMessage(u'Quiz is already underway!')
          

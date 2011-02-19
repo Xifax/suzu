@@ -20,7 +20,7 @@ class Options:
                  }),
                  ('QFont',                  #quiz answers font
                   {'name' : u'小塚明朝 Pro EL',
-                   'size' : 13,
+                   'size' : 14,
                    }),
                   ('IFont',                  #messages font
                   {'name' : u'Cambria',
@@ -28,7 +28,7 @@ class Options:
                    }),
                  ('Intervals',              #time constraints
                   {'repetition' : 1,        #minutes
-                   'countdown'  : 20,       #seconds
+                   'countdown'  : 30,       #seconds
                    }),
                  ('Active',                 #active tags and mode
                   {'tags' : [],             #tags names (as, jlpt2,3 etc)

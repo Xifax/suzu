@@ -21,8 +21,8 @@ class Leitner:
     def nextQuiz(grade):         # 'time' param not required, we're counting from 'now'
         return {
            Leitner.grades.None.index : datetime.now(),  # it's not necessary to fill in the corresponding db field  # or it may be better to specify nothing at all
-           Leitner.grades.SeenOnce.index : datetime.now() + timedelta(minutes = Leitner.coeff * 10),  #or 15, 30?
-           Leitner.grades.Familiar.index : datetime.now() + timedelta(hours = Leitner.coeff * 1),     #or 2, 3?
+           Leitner.grades.SeenOnce.index : datetime.now() + timedelta(minutes = Leitner.coeff * 20),  #or 15, 30?
+           Leitner.grades.Familiar.index : datetime.now() + timedelta(hours = Leitner.coeff * 2),     #or 2, 3?
            Leitner.grades.Accustomed.index : datetime.now() + timedelta(hours = Leitner.coeff * 12),
            Leitner.grades.Memorized.index : datetime.now() + timedelta(days = Leitner.coeff * 1),
            Leitner.grades.Digested.index : datetime.now() + timedelta(days = Leitner.coeff * 3),

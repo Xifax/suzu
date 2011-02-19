@@ -45,14 +45,28 @@ class OptionsDialog(QDialog):
         self.labelTest.installEventFilter(self.filter)
         self.labelSecond.installEventFilter(self.filter)
         
+        #Movie/GIF
+        self.movie_screen = QLabel()
+        self.movie_screen.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)        
+        self.movie_screen.setAlignment(Qt.AlignCenter) 
+        #
+        self.movie = QMovie('../res/kanji/e4b88a.gif', QByteArray(), self) 
+        self.movie.setCacheMode(QMovie.CacheAll) 
+        self.movie.setSpeed(100) 
+        self.movie_screen.setMovie(self.movie)
+        
         self.layout_horizontal = QHBoxLayout()
 
         self.layout_horizontal.addWidget(self.labelTest)
         self.layout_horizontal.addWidget(self.labelSecond)
         self.layout_horizontal.addWidget(self.intervalDial)
         self.layout_horizontal.addWidget(self.countdownDial)
-        #self.setLayout(self.layout_horizontal)
+        self.layout_horizontal.addWidget(self.movie_screen)
+        self.setLayout(self.layout_horizontal)
         
+        self.movie.start()
+        
+        '''
         self.grid_layout = QGridLayout()#QHBoxLayout()#
         self.grid_layout.setSpacing(0)
         self.labels = []
@@ -87,16 +101,16 @@ class OptionsDialog(QDialog):
             
             if j <= n: j = j + c
             else: j = 0; i = i + 1
-        
+        '''
 
         #self.grid_layout.setMargin(20)
-        self.grid_layout.setGeometry(QRect(100,100,100,100))
-        self.grid_layout.setSizeConstraint(self.grid_layout.SetFixedSize)
+        #self.grid_layout.setGeometry(QRect(100,100,100,100))
+        #self.grid_layout.setSizeConstraint(self.grid_layout.SetFixedSize)
         #self.grid_layout.setContentsMargins(10, 10, 10, 10)
         #self.grid_layout.setColumnMinimumWidth(0,3)
         #self.grid_layout.setSizeConstraint(QLayout.SizeConstraint(2))
         #self.grid_layout.setSizeConstraint()
-        self.setLayout(self.grid_layout)
+        #self.setLayout(self.grid_layout)
         
         self.initializeComponents()
     
