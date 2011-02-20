@@ -30,3 +30,20 @@ class Leitner:
            Leitner.grades.LongTerm.index : datetime.now() + timedelta(weeks = Leitner.coeff * 4),      #timedelta does not accept months
            Leitner.grades.Shelved.index : datetime.now() + timedelta(weeks = Leitner.coeff * 24)       #or a full year?
         }[grade]
+        
+    @staticmethod
+    def correspondingColor(grade):
+        return {
+           Leitner.grades.None.index : 'darkred',
+           Leitner.grades.SeenOnce.index : 'red',
+           Leitner.grades.Familiar.index : 'darksalmon',
+           Leitner.grades.Accustomed.index : 'orange',
+           Leitner.grades.Memorized.index : 'khaki',
+           Leitner.grades.Digested.index : 'gold',
+           Leitner.grades.Learned.index : 'greenyellow',
+           Leitner.grades.LongTerm.index : 'palegreen',
+           Leitner.grades.Shelved.index : 'forestgreen'
+        }[grade]
+        
+#test =  Leitner.grades[0]
+#print test

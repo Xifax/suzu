@@ -112,6 +112,9 @@ class srsScheduler:
     def getNextQuizTime(self):
         return self.currentItem.next_quiz.strftime('%d %b %H:%M:%S')#('%d %b %H:%M:%S (%Y)')
     
+    def getLeitnerGradeAndColor(self):
+        return {'grade' : str(self.currentItem.leitner_grade), 'name' : Leitner.grades[self.currentItem.leitner_grade].key, 'color' : Leitner.correspondingColor(self.currentItem.leitner_grade)}
+    
 '''
 srs = srsScheduler()
 srs.initializeCurrentSession('kanji', 300)

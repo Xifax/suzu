@@ -19,7 +19,7 @@ class MecabTool:
             infos['dform'] = array[4]
             infos['reading'] = array[5]
             infos['self'] = array[6]
-            infos['pronunciation'] = array[7]
+            infos['pronunciation'] = array[7]       #NB: somehow, error hath happened here
             if not infos['type'] == "BOS/EOS":
                 word_array.append(infos)
             mnode = mnode.next

@@ -6,11 +6,13 @@ Created on Jan 31, 2011
 '''
  
 import sys
+from datetime import datetime
 
 from srs import srsScheduler
 from rtimer import RepeatTimer
 from fonts import Fonts
 from options import Options
+from stats import Stats
 
 from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent 
 from PySide.QtGui import *  #TODO: fix to parsimonious imports
@@ -21,6 +23,7 @@ from pkg_resources import resource_filename
 from cjktools.resources import auto_format
 from cjktools.resources import kanjidic
 from cjktools import scripts
+from IPython.Extensions.ipy_synchronize_with import sleep
 
 class Filter(QObject):
     """Sentence components mouse hover filter"""
@@ -30,19 +33,17 @@ class Filter(QObject):
             object.setStyleSheet("QLabel { color: rgb(0, 0, 0); }")
             quiz.info.hide()
 
-        #NB: it may be nice to block info by left click OR
-        #NB: show translation only when item left clicked!
+        #NB: it may be nice to block info by left click OR show translation only when item is left clicked!
         
         if event.type() == QEvent.HoverEnter:
             object.setStyleSheet("QLabel { color: rgb(0, 5, 255); }")
             quiz.info.item.setText(object.text())
             
             '''
-            #NB: IS IT ALL EVEN NECESSARY? May as well get this from mecab parse results
+            #NB: IS IT ALL EVEN NECESSARY? May as well get this from mecab parse results    #DONE
             #setting reading        #words to edict, kanji to kanjidict
             search = []
             if len(object.text()) == 1:
-                #NB: to kanjidict
                 try:
                     search = quiz.kjd[object.text()]
                     quiz.info.reading.setText(' '.join(search.readings.sences_by_reading().keys()))
@@ -50,7 +51,6 @@ class Filter(QObject):
                     quiz.info.reading.setText('not found')
                 
             else:
-                #NB: to edict
                 try: 
                     search = quiz.edict[object.text()]
                     #if len(search.sences_by_reading.keys()) > 2  :   search = search[:2]
@@ -86,14 +86,16 @@ class Filter(QObject):
             
             quiz.info.show()
 
-            if event.type() == QEvent.MouseButtonPress:
-                quiz.info.hide()
-                #print 'lalala'      #TODO: show big box with readings
-                #u'空'.encode('utf-8').encode('hex')
-                #[f for f in fileList if f.find(u'空'.encode('utf-8').encode('hex') + '.gif') > -1]
-                
-                #path = '../res/kanji/' + kanji.encode('utf-8').encode('hex') + '.gif'
-            print event.type()
+        if event.type() == QEvent.MouseButtonPress:
+            if quiz.info.isVisible():  quiz.info.hide()
+            elif quiz.info.isHidden():   quiz.info.show()
+            
+            #print 'lalala'      #TODO: show big box with readings
+            #u'空'.encode('utf-8').encode('hex')
+            #[f for f in fileList if f.find(u'空'.encode('utf-8').encode('hex') + '.gif') > -1]
+            
+            #path = '../res/kanji/' + kanji.encode('utf-8').encode('hex') + '.gif'
+            #print event.type()
             
         return False
 
@@ -116,7 +118,7 @@ class Quiz(QFrame):
      
     def __init__(self, parent=None):
         super(Quiz, self).__init__(parent)
-
+        
         """Session Info"""
         self.status = QFrame()
         ##session message
@@ -148,8 +150,8 @@ class Quiz(QFrame):
         self.info.setLayout(self.info.layout)
         
         """Verbose Info"""
+        #TODO: implement
         self.allInfo = QFrame()
-        #self.allInfo.
         
         """Global Flags"""
         #self.correct = False
@@ -197,6 +199,29 @@ class Quiz(QFrame):
         self.countdownTimer.setSingleShot(True)
         self.countdownTimer.timeout.connect(self.timeIsOut)
         
+        ### initializing ###
+        self.initializeResources()
+        
+        """Start!"""
+        if self.options.isQuizStartingAtLaunch():
+            self.waitUntilNextTimeslot()
+            self.trayIcon.setToolTip('Quiz has started automatically!')
+            self.pauseAction.setText('&Pause')
+            self.trayIcon.showMessage('Loading complete! (took ~'+ str(self.loadingTime.seconds) + ' seconds) Quiz underway.', 'Lo! Quiz already in progress!', QSystemTrayIcon.MessageIcon.Warning, 10000)
+        else:
+            self.trayIcon.setToolTip('Quiz is not initiated!')
+            self.trayIcon.showMessage('Loading complete! (took ~' + str(self.loadingTime.seconds) + ' seconds) Standing by.', 'Quiz has not started yet! If you wish, you could start it manually or enable autostart by default.', 
+                                      QSystemTrayIcon.MessageIcon.Information, 10000 )
+            
+        """Test calls here:"""
+        ###    ...    ###
+
+####################################
+#    Initialization procedures     #
+####################################
+
+    def initializeResources(self):
+        
         """Pre-initialization"""
         self.animationTimer = ()
         self.progressTimer = ()
@@ -205,11 +230,8 @@ class Quiz(QFrame):
         """Initialize Options"""
         self.options = Options()
         
-        """"Initialize Dictionaries    (will take a lot of time!)"""
-        self.rdk = RadkDict()
-        edict_file = resource_filename('cjktools_data', 'dict/je_edict')
-        self.edict = auto_format.load_dictionary(edict_file)
-        #self.kjd = kanjidic.Kanjidic()
+        """Initialize Statistics"""
+        self.stats = Stats()
         
         """Config Here"""
         self.initializeComposition()
@@ -217,30 +239,34 @@ class Quiz(QFrame):
         self.setMenus()
         self.trayIcon.show()
         
-        """initializing srs system"""
+        """"Initialize Dictionaries    (will take a some time!)"""
+        time_start = datetime.now()
+        
+        self.trayIcon.showMessage('Loading...', 'Initializing dictionaries', QSystemTrayIcon.MessageIcon.Information, 10000 )     #TODO: change into loading dialog... or not
+        self.rdk = RadkDict()
+        edict_file = resource_filename('cjktools_data', 'dict/je_edict')
+        self.edict = auto_format.load_dictionary(edict_file)
+        #self.kjd = kanjidic.Kanjidic()
+        
+        """Initializing srs system"""
+        #time_start = datetime.now()
+        self.trayIcon.showMessage('Loading...', 'Initializing databases', QSystemTrayIcon.MessageIcon.Information, 10000 )
         self.srs = srsScheduler()
         self.srs.initializeCurrentSession(self.options.getQuizMode(), self.options.getSessionSize())
         
-        """Start!"""
-        if self.options.isQuizStartingAtLaunch():
-            self.waitUntilNextTimeslot()
-            self.trayIcon.setToolTip('Quiz has started automatically!')
-        else:
-            self.trayIcon.setToolTip('Quiz is not initiated!')
-            
-        """Test calls here:"""
+        time_end = datetime.now()
+        self.loadingTime =  time_end - time_start
 
 ####################################
 #    Composition and appearance    #
 ####################################
 
     def initializeComposition(self):
-        #TODO: may or may not want to control dialog size according to text size
-        D_WIDTH = 550
+        D_WIDTH = 560
         D_HEIGHT = 176#136
         
         #I_WIDTH = D_HEIGHT
-        I_WIDTH = 200
+        I_WIDTH = 210
         I_HEIGHT = D_HEIGHT
         I_INDENT = 2
         
@@ -254,11 +280,11 @@ class Quiz(QFrame):
         V_INDENT = D_HEIGHT + 40 #indent from bottom
         
         """Main Dialog"""
-        self.setWindowFlags(Qt.FramelessWindowHint) #and Qt.WindowStaysOnTopHint)    NB:changes widget to window
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setFocusPolicy(Qt.StrongFocus)
         self.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         #Font will appear in buttons
-        self.setFont(QFont(Fonts.HiragiNoMyoutyouProW3, self.options.getQuizFontSize()))
+        self.setFont(QFont(Fonts.TukusiMyoutyouProLB, self.options.getQuizFontSize()))
 
         desktop = QApplication.desktop().screenGeometry()
         self.setGeometry(QRect(desktop.width() - H_INDENT, desktop.height() - V_INDENT, D_WIDTH, D_HEIGHT))
@@ -266,7 +292,7 @@ class Quiz(QFrame):
         self.setStyleSheet("QWidget { background-color: rgb(255, 255,255); }")
         
         """Info dialog"""
-        self.info.setWindowFlags(Qt.FramelessWindowHint)
+        self.info.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.info.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         self.info.setGeometry(QRect(desktop.width() - H_INDENT - I_WIDTH - I_INDENT, desktop.height() - V_INDENT, I_WIDTH, I_HEIGHT))
         #self.info.setWindowOpacity(0.80)
@@ -274,7 +300,7 @@ class Quiz(QFrame):
         self.info.setStyleSheet("QWidget { background-color: rgb(255, 255,255); }")
         
         """Session message"""
-        self.status.setWindowFlags(Qt.FramelessWindowHint)
+        self.status.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.status.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         self.status.setGeometry(QRect(desktop.width() - H_INDENT, desktop.height() - V_INDENT - S_HEIGHT - S_INDENT - S_CORRECTION, S_WIDTH, S_HEIGHT))
         
@@ -295,7 +321,7 @@ class Quiz(QFrame):
         self.sentence.setWordWrap(True)
         self.trayIcon.setIcon(QIcon('../res/cards.ico'))
         
-        self.status.message.setFont(QFont(Fonts.MSMyoutyou, self.options.getMessageFontSize()))
+        self.status.message.setFont(QFont('Cambria', self.options.getMessageFontSize()))
         self.status.layout.setAlignment(Qt.AlignCenter)
         self.status.message.setWordWrap(False)
         self.status.layout.setMargin(0)
@@ -347,7 +373,6 @@ class Quiz(QFrame):
             self.var_4th.setText(readings[3])
         
     def getReadyPostLayout(self):
-        #NB: DANGEROUS stuff ahead!
         self.sentence.hide()
         self.update()
         
@@ -409,6 +434,9 @@ class Quiz(QFrame):
         
     def beginCountdown(self):
         self.trayIcon.setToolTip('Quiz in progress!')
+        self.pauseAction.setText('&Pause')
+        self.pauseAction.setShortcut('P')
+        
         self.countdownTimer.start(self.options.getCountdownInterval() * 1000)
 
         self.progressTimer = RepeatTimer(0.01, self.updateCountdownBar, self.options.getCountdownInterval() * 100)
@@ -438,23 +466,13 @@ class Quiz(QFrame):
         self.countdownTimer.stop()
         self.countdown.setValue(0)
         
-    def timeIsOut(self):
-        QTimer.singleShot(50, self.hideButtonsQuiz)     #NB: slight artificial lag to prevent recursive repaint crush, when mouse is suddenly over appearing button
-        self.getReadyPostLayout()
-        self.srs.answeredWrong()
-
-        #self.showSessionMessage(u'Time is out! Correct answer is:' + self.srs.getCorrectAnswer())
-        self.showSessionMessage(u'Timeout! Should be: ' + self.srs.getCorrectAnswer() + ' - Next quiz: ' + self.srs.getNextQuizTime())
-        self.answered.setFont(QFont('Calibri', 11))
-        self.answered.setText(self.srs.getCurrentSentenceTranslation())
-        
 ####################################
 #        Actions and events        #
 ####################################    
     
     def setMenus(self):
         self.trayMenu.addAction(QAction('&Quiz me now!', self, shortcut="Q", triggered=self.showQuiz))
-        self.pauseAction = QAction('&Pause', self, shortcut="P", triggered=self.pauseQuiz)
+        self.pauseAction = QAction('&Start quiz!', self, shortcut="S", triggered=self.pauseQuiz)
         self.trayMenu.addAction(self.pauseAction)
         self.trayMenu.addAction(QAction('&Options', self, shortcut="O", triggered=self.showOptions))
         self.trayMenu.addAction(QAction('&About', self, shortcut="A", triggered=self.showAbout))
@@ -462,7 +480,22 @@ class Quiz(QFrame):
         self.trayMenu.addAction(QAction('&Exit', self, shortcut="E", triggered=self.saveAndExit))
 
         self.trayIcon.setContextMenu(self.trayMenu)
-        #self.trayIcon.activated.connect(self.showQuiz) #NB: left click breaks it all
+        self.trayIcon.activated.connect(self.onTrayIconActivated)
+
+    #TODO: show session statistics
+    def onTrayIconActivated(self, reason):
+        '''
+        if reason == QSystemTrayIcon.DoubleClick:
+            print 'tray icon double clicked'
+        '''
+        if reason == QSystemTrayIcon.Trigger:
+            if self.isHidden():
+                self.trayIcon.showMessage('Current session statistics:', 'Running time:\t\t' + self.stats.getRunningTime() + 
+                                          '\nItems seen:\t\t' + str(self.stats.totalItemSeen) + 
+                                          '\nCorrect answers:\t\t' + str(self.stats.answeredCorrect) +
+                                          '\nWrong answers:\t\t' + self.stats.getIncorrectAnswersCount() +
+                                          '\nCorrect ratio:\t\t' + self.stats.getCorrectRatioPercent(), 
+                                          QSystemTrayIcon.MessageIcon.Information, 20000)
     
     def setButtonsActions(self):
 
@@ -499,10 +532,13 @@ class Quiz(QFrame):
         self.getReadyPostLayout()
         
         self.srs.answeredCorrect()
+        self.stats.quizAnsweredCorrect()
         #self.answered.setText(u"<font='Cambria'>" + self.srs.getCurrentSentenceTranslation() + "</font>")
         self.answered.setText(self.srs.getCurrentSentenceTranslation())
         self.answered.setFont(QFont('Calibri', 11))
-        self.showSessionMessage(u'Correct: ' + self.srs.getCorrectAnswer() + ' - Next quiz: ' + self.srs.getNextQuizTime())
+        self.showSessionMessage(u'<font color=green>Correct: ' + self.srs.getCorrectAnswer() + '</font>\t|\tNext quiz: ' + self.srs.getNextQuizTime() 
+                                + '\t|\t<font color=' + self.srs.getLeitnerGradeAndColor()['color'] +  '>Grade: ' + self.srs.getLeitnerGradeAndColor()['grade'] 
+                                + ' (' + self.srs.getLeitnerGradeAndColor()['name'] + ')<font>')
         
     def wrongAnswer(self):
         self.stopCountdown()
@@ -511,10 +547,30 @@ class Quiz(QFrame):
         self.getReadyPostLayout()
         
         self.srs.answeredWrong()
+        self.stats.quizAnsweredWrong()
+        
         self.answered.setText(self.srs.getCurrentSentenceTranslation())
         self.answered.setFont(QFont('Calibri', 11))
-        self.showSessionMessage(u'Wrong! Should be: ' + self.srs.getCorrectAnswer() + ' - Next quiz: ' + self.srs.getNextQuizTime())
+        #self.showSessionMessage(u"Wrong! Should be: <font style='font-family:" + Fonts.MSMyoutyou + "'>" 
+                                #+ self.srs.getCorrectAnswer() + "</font> - Next quiz: " + self.srs.getNextQuizTime())
+        self.showSessionMessage(u'<font color=tomato>Wrong! Should be: '+ self.srs.getCorrectAnswer() + '</font>\t|\tNext quiz: ' + self.srs.getNextQuizTime()
+                                + '\t|\t<font color=' + self.srs.getLeitnerGradeAndColor()['color'] +  '>Grade: ' + self.srs.getLeitnerGradeAndColor()['grade'] 
+                                + ' (' + self.srs.getLeitnerGradeAndColor()['name'] + ')<font>')
             
+    def timeIsOut(self):
+        QTimer.singleShot(50, self.hideButtonsQuiz)     #NB: slight artificial lag to prevent recursive repaint crush, when mouse is suddenly over appearing button
+        self.getReadyPostLayout()
+        
+        self.srs.answeredWrong()
+        self.stats.quizAnsweredWrong()
+
+        #self.showSessionMessage(u'Time is out! Correct answer is:' + self.srs.getCorrectAnswer())
+        self.answered.setFont(QFont('Calibri', 11))
+        self.answered.setText(self.srs.getCurrentSentenceTranslation())
+        self.showSessionMessage(u'<font color=tomato>Timeout! Should be: ' + self.srs.getCorrectAnswer() + '</font>\t|\tNext quiz: ' + self.srs.getNextQuizTime()
+                                + '\t|\t<font color=' + self.srs.getLeitnerGradeAndColor()['color'] +  '>Grade: ' + self.srs.getLeitnerGradeAndColor()['grade'] 
+                                + ' (' + self.srs.getLeitnerGradeAndColor()['name'] + ')<font>')        
+    
     def hideQuizAndWaitForNext(self):
         
         self.status.hide()
@@ -526,15 +582,20 @@ class Quiz(QFrame):
         self.waitUntilNextTimeslot()
  
     def pauseQuiz(self):
-        #TODO: it would be good to hide sentence, if paused during the actual quiz!
         if self.isHidden():
-            if self.pauseAction.text() == '&Pause':     #NB: somehow, QTimer.isActive does not work properly
+            if self.pauseAction.text() == '&Pause':
                 self.nextQuizTimer.stop()
                 self.pauseAction.setText('&Unpause')
+                self.pauseAction.setShortcut('U')
                 self.trayIcon.setToolTip('Quiz paused!')
+            elif self.pauseAction.text() == '&Start quiz!':
+                self.waitUntilNextTimeslot()
+                self.pauseAction.setText('&Pause')
+                self.trayIcon.setToolTip('Quiz in progress!')
             else:
                 self.waitUntilNextTimeslot()
                 self.pauseAction.setText('&Pause')
+                self.pauseAction.setShortcut('P')
                 self.trayIcon.setToolTip('Quiz in progress!')
         else:
             self.showSessionMessage(u'Sorry, cannot pause while quiz in progress!')
@@ -565,10 +626,12 @@ class Quiz(QFrame):
         """Shows info message"""
         self.status.message.setText(message)
         self.status.show()
-        self.setFocus() #NB: does not work
+        #self.setFocus() #NB: does not work
  
     def saveAndExit(self):
         #TODO: check if it really works as it should
+        self.trayIcon.showMessage('Shutting down...', 'Saving session', QSystemTrayIcon.MessageIcon.Information, 10000 )
+        
         if self.countdownTimer.isActive():
                 self.countdownTimer.stop()
         if self.nextQuizTimer.isActive():
@@ -577,7 +640,7 @@ class Quiz(QFrame):
                 self.progressTimer.cancel()      
             
         self.srs.endCurrentSession()
-        
+
         self.status.hide()
         self.trayIcon.hide()
         self.close()

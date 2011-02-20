@@ -10,16 +10,15 @@ from userconfig import UserConfig
 class Options:
     
     def __init__(self):
-        #TODO: conceive application name
         self.APP_NAME = 'suzu'             #輪廻／りんね or 鈴ね
         
-        #default settings
+        #default settings    #TODO: group fonts settings
         self.OPTIONS = [('SFont',           #sentences font
                 {'name' : u'ヒラギノ丸ゴ Pro W4',
                  'size' : 18,
                  }),
                  ('QFont',                  #quiz answers font
-                  {'name' : u'小塚明朝 Pro EL',
+                  {'name' : u'FOT-筑紫明朝 Pro LB',
                    'size' : 14,
                    }),
                   ('IFont',                  #messages font
@@ -45,7 +44,7 @@ class Options:
                ]
         
         #creates or reads from app.ini in Users/username/
-        self.CONFIG = UserConfig(self.APP_NAME, self.OPTIONS)
+        self.CONFIG = UserConfig(self.APP_NAME, self.OPTIONS, version='0.0.1')
         
     def getSentenceFont(self):
         return self.CONFIG.get('SFont', 'name')

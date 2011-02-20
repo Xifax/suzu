@@ -32,7 +32,7 @@ class OptionsDialog(QDialog):
         self.intervalDial = QDial()
         self.countdownDial = QDial()
         self.labelTest = QLabel()
-        self.labelTest.setText(u'This is a test!')
+        self.labelTest.setText(u"<font style='font-family: Cambria'>This is a test!</font>")
         self.labelSecond = QLabel()
         self.labelSecond.setText(u'This is a second label!')
 
