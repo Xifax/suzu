@@ -67,7 +67,7 @@ class Example(Entity):
 class DBoMagic:
     
     def __init__(self):
-        self.dbname = 'studying.db'
+        self.dbname = 'studying.db'     #NB: transfer all constants to special class
         self.kanjidic2 = 'kanjidic2.db'
         self.sqite = 'sqlite:///'
         self.pathToRes = '../res/'      #purportedly, exe will be in bin or whatever (not on the same level as /res)

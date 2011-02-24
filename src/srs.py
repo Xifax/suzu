@@ -24,7 +24,7 @@ class srsScheduler:
         self.db.setupDB()
         
         #FOR TEST DB INITIALIZATION ONLY
-        self.db.addItemsToDbJlpt(3)
+        ###self.db.addItemsToDbJlpt(3)            don't forget to comment this!!
         ######################
         
         self.db.initializeCurrentSession(mode, sessionSize)
@@ -54,6 +54,7 @@ class srsScheduler:
         self.currentExample =  self.db.getExample(self.currentItem) 
         ## add corresponding word to db
         self.db.addWordToDb(self.currentItem, self.getWordFromExample())
+        #TODO: relate word to example sentence
         return self.currentExample.sentence
     
     def parseCurrentExample(self):

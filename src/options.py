@@ -6,6 +6,7 @@ Created on Feb 11, 2011
 '''
 
 from userconfig import UserConfig
+from about import __version__
 
 class Options:
     
@@ -44,7 +45,7 @@ class Options:
                ]
         
         #creates or reads from app.ini in Users/username/
-        self.CONFIG = UserConfig(self.APP_NAME, self.OPTIONS, version='0.0.1')
+        self.CONFIG = UserConfig(self.APP_NAME, self.OPTIONS, version=__version__)
         
     def getSentenceFont(self):
         return self.CONFIG.get('SFont', 'name')

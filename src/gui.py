@@ -13,8 +13,9 @@ from rtimer import RepeatTimer
 from fonts import Fonts
 from options import Options
 from stats import Stats
+from about import About
 
-from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent 
+from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent,QByteArray
 from PySide.QtGui import *  #TODO: fix to parsimonious imports
 
 #TODO: fix forced builtins in Aptana settings
@@ -23,7 +24,29 @@ from pkg_resources import resource_filename
 from cjktools.resources import auto_format
 from cjktools.resources import kanjidic
 from cjktools import scripts
-from IPython.Extensions.ipy_synchronize_with import sleep
+
+import pythoncom, pyHook
+import threading
+
+class HotkeyHooker(threading.Thread): 
+
+    def __init__(self, key):
+        threading.Thread.__init__(self)
+        self.key = key
+        self.finished = threading.Event()
+
+    def OnKeyboardEvent(self, event):
+
+        if event.Key == self.key and event.Ascii == 0:
+            quiz.trayIcon.showMessage('Test!', 'Pressed global hotkey!', QSystemTrayIcon.Information, 5000)
+            #quiz.showQuiz() #NB: it will not work!
+        return True
+    
+    def run(self):
+        hm = pyHook.HookManager()
+        hm.KeyDown = self.OnKeyboardEvent
+        hm.HookKeyboard()
+        pythoncom.PumpMessages()
 
 class Filter(QObject):
     """Sentence components mouse hover filter"""
@@ -31,33 +54,13 @@ class Filter(QObject):
 
         if event.type() == QEvent.HoverLeave:
             object.setStyleSheet("QLabel { color: rgb(0, 0, 0); }")
+            
             quiz.info.hide()
-
-        #NB: it may be nice to block info by left click OR show translation only when item is left clicked!
+            quiz.allInfo.hide()
         
         if event.type() == QEvent.HoverEnter:
             object.setStyleSheet("QLabel { color: rgb(0, 5, 255); }")
             quiz.info.item.setText(object.text())
-            
-            '''
-            #NB: IS IT ALL EVEN NECESSARY? May as well get this from mecab parse results    #DONE
-            #setting reading        #words to edict, kanji to kanjidict
-            search = []
-            if len(object.text()) == 1:
-                try:
-                    search = quiz.kjd[object.text()]
-                    quiz.info.reading.setText(' '.join(search.readings.sences_by_reading().keys()))
-                except:
-                    quiz.info.reading.setText('not found')
-                
-            else:
-                try: 
-                    search = quiz.edict[object.text()]
-                    #if len(search.sences_by_reading.keys()) > 2  :   search = search[:2]
-                    quiz.info.reading.setText(' '.join(search.readings.sences_by_reading().keys()))
-                except:
-                    quiz.info.reading.setText('not found')
-            '''
             
             reading = quiz.srs.getWordPronunciationFromExample(object.text())
             if reading != object.text() :  quiz.info.reading.setText(reading)
@@ -66,12 +69,15 @@ class Filter(QObject):
             #parsing word
             script = scripts.script_boundaries(object.text())
             components = []
+
             for cluster in script:
                 if scripts.script_type(cluster) == scripts.Script.Kanji:
                     for kanji in cluster:
-                        components = components + list(quiz.rdk[kanji])
+                        components = components + list(quiz.rdk[kanji]) + list('\n')
+                        #kanji_list.append(kanji)
                 
             #setting radikals
+            if len(components) > 0: components.pop()    #remove last '\n'
             quiz.info.components.setText(' '.join(components))
             
             #looking up translation    #TODO: show translation only when left/right button is pressed (otherwise, show just main translation)
@@ -87,15 +93,116 @@ class Filter(QObject):
             quiz.info.show()
 
         if event.type() == QEvent.MouseButtonPress:
-            if quiz.info.isVisible():  quiz.info.hide()
-            elif quiz.info.isHidden():   quiz.info.show()
-            
-            #print 'lalala'      #TODO: show big box with readings
-            #u'空'.encode('utf-8').encode('hex')
-            #[f for f in fileList if f.find(u'空'.encode('utf-8').encode('hex') + '.gif') > -1]
-            
-            #path = '../res/kanji/' + kanji.encode('utf-8').encode('hex') + '.gif'
-            #print event.type()
+            if event.button() == Qt.LeftButton:
+                print '!'   #TODO: add distinction between actions
+            if quiz.info.isVisible() and quiz.allInfo.isHidden():  
+                quiz.info.hide()
+                
+                # purging previous items
+
+                #for i in range(0, quiz.allInfo.kanji_layout.count()):
+                    #quiz.allInfo.kanji_layout.itemAt(i).widget().hide()
+                #for i in range(0, quiz.allInfo.layout.count()):
+                    #quiz.allInfo.layout.itemAt(i).widget().hide()
+                
+                #quiz.allInfo.layout.removeItem(quiz.allInfo.kanji_layout)       #TODO: DO SOMETHING!!!!!111
+                #quiz.allInfo.kanji_layout.setParent(None) 
+                
+                quiz.unfill(quiz.allInfo.layout)
+                
+                #quiz.allInfo.layout.removeItem(quiz.allInfo.kanji_layout)
+                #quiz.unfill(quiz.allInfo.layout)
+                
+                #quiz.allInfo.update()   
+                    
+                # resetting contents
+                #quiz.allInfo.layout = QVBoxLayout()
+                #quiz.allInfo.kanji_layout = QHBoxLayout()
+                quiz.allInfo.layout.setMargin(0)
+                #quiz.allInfo.layout.setAlignment(Qt.AlignCenter)
+                
+                #quiz.allInfo.kanji_layout.setMargin(0)
+                #quiz.allInfo.kanji_layout.setAlignment(Qt.AlignCenter)
+                
+                #quiz.translations = QLabel(u'')
+                #quiz.translations.setFont(QFont('Calibri', 14))
+                #quiz.translations.setWordWrap(True)
+                #quiz.translations.setAlignment(Qt.AlignCenter)
+                
+                kanjiList = []
+                script = scripts.script_boundaries(object.text())
+
+                for cluster in script:
+                    if scripts.script_type(cluster) == scripts.Script.Kanji:
+                        for kanji in cluster:
+                            kanjiList.append(kanji)
+                
+                i=0; j=0;
+                # kanji strokes
+                if len(kanjiList) > 0:
+                    
+                    #quiz.allInfo.gifs = []
+                    #quiz.allInfo.movies = []
+                    
+                    infile = open('../res/kanji/KANJI-MANIFEST-UNICODE-HEX', 'r')
+                    text = infile.read()
+                    infile.close()
+                    
+                    for kanji in kanjiList:
+                        
+                        if( text.find(kanji.encode('utf-8').encode('hex')) != -1):
+                        
+                            gif = QLabel()
+                            gif.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)        
+                            gif.setAlignment(Qt.AlignCenter) 
+    
+                            movie = QMovie('../res/kanji/' + kanji.encode('utf-8').encode('hex') + '.gif', QByteArray(), self) 
+                            movie.setCacheMode(QMovie.CacheAll) 
+                            movie.setSpeed(150) 
+                            
+                            gif.setMovie(movie)
+                            quiz.allInfo.layout.addWidget(gif, i, j);   j = j + 1
+                            movie.start()
+                              
+                    i = i + 1
+                
+                # words translation
+                translations = QLabel(u'')
+                translations.setFont(QFont('Calibri', 11))
+                translations.setWordWrap(True)
+                translations.setAlignment(Qt.AlignCenter)
+                try:
+                    search = quiz.edict[object.text()]
+
+                    translationText = u''
+                    for sense in search.senses_by_reading():
+                        variants = search.senses_by_reading()[sense]
+                        variants = filter (lambda e: e != '(P)', variants)
+                        #TODO: add replace for ()
+                        
+                        translationText += '<b>' + sense + '</b>:\t' + ', '.join(variants) + '\n' #NB: somehow, '\n' does not work
+                    
+                    #NB: crop text to n symbols    
+                    translations.setText(translationText.rstrip('\n'))
+                    print translations.text()
+                except:
+                    translations.setText(u'no translation in edict')    #TODO: add search with +'ru', 'ku', etc
+                
+                if i > 0:
+                    separator = QFrame()
+                    separator.setFrameShape(QFrame.HLine)
+                    separator.setFrameShadow(QFrame.Sunken)
+                    quiz.allInfo.layout.addWidget(separator, i, 0, 1, j);   i = i + 1
+                
+                quiz.allInfo.layout.addWidget(translations, i, 0, 1, j)    #NB: rows span should be changed, maybe
+                
+                quiz.allInfo.update()
+                quiz.allInfo.show()
+                
+            elif quiz.allInfo.isVisible():  #quiz.info.isHidden():
+
+                quiz.allInfo.hide()   
+                quiz.info.show()
             
         return False
 
@@ -141,17 +248,29 @@ class Quiz(QFrame):
         self.info.components = QLabel(u'')
         ##translation
         self.info.translation = QLabel(u'')
-        #self.info.reading = QLabel(u'')
+
+        separator_one = QFrame()
+        separator_one.setFrameShape(QFrame.HLine)
+        separator_one.setFrameShadow(QFrame.Sunken)
+        
+        separator_two = QFrame()
+        separator_two.setFrameShape(QFrame.HLine)
+        separator_two.setFrameShadow(QFrame.Sunken)
+        
         self.info.layout = QVBoxLayout()
         self.info.layout.addWidget(self.info.reading)
+        self.info.layout.addWidget(separator_one)
         self.info.layout.addWidget(self.info.item)
+        self.info.layout.addWidget(separator_two)
         self.info.layout.addWidget(self.info.components)
-        self.info.layout.addWidget(self.info.translation)
+        #self.info.layout.addWidget(self.info.translation)
         self.info.setLayout(self.info.layout)
         
         """Verbose Info"""
-        #TODO: implement
         self.allInfo = QFrame()
+        self.allInfo.layout = QGridLayout()
+        self.allInfo.setLayout(self.allInfo.layout)
+        #the rest is (should be) generated on the fly
         
         """Global Flags"""
         #self.correct = False
@@ -191,6 +310,9 @@ class Quiz(QFrame):
         self.trayIcon = QSystemTrayIcon(self)
         self.trayMenu = QMenu()
         
+        self.gifLoading = QMovie('../res/cube.gif')
+        self.gifLoading.frameChanged.connect(self.updateTrayIcon)
+        
         self.nextQuizTimer = QTimer()
         self.nextQuizTimer.setSingleShot(True)
         self.nextQuizTimer.timeout.connect(self.showQuiz)
@@ -201,6 +323,12 @@ class Quiz(QFrame):
         
         ### initializing ###
         self.initializeResources()
+        
+        ### about and quick dictionary dialogs ###
+        
+        """About Dialog"""
+        #self.about = About(self)    #NB: if parent is quiz, about dialog will appear in left down corner
+        self.about = About()
         
         """Start!"""
         if self.options.isQuizStartingAtLaunch():
@@ -238,6 +366,7 @@ class Quiz(QFrame):
         self.initializeComponents()
         self.setMenus()
         self.trayIcon.show()
+        #self.startTrayLoading()
         
         """"Initialize Dictionaries    (will take a some time!)"""
         time_start = datetime.now()
@@ -249,10 +378,14 @@ class Quiz(QFrame):
         #self.kjd = kanjidic.Kanjidic()
         
         """Initializing srs system"""
-        #time_start = datetime.now()
         self.trayIcon.showMessage('Loading...', 'Initializing databases', QSystemTrayIcon.MessageIcon.Information, 10000 )
         self.srs = srsScheduler()
         self.srs.initializeCurrentSession(self.options.getQuizMode(), self.options.getSessionSize())
+        
+        """Global hotkeys hook"""
+        self.hooker = HotkeyHooker('Q')
+        #self.hooker.setDaemon(True)    #NB: Ends thread on program end
+        #self.hooker.start()
         
         time_end = datetime.now()
         self.loadingTime =  time_end - time_start
@@ -266,7 +399,7 @@ class Quiz(QFrame):
         D_HEIGHT = 176#136
         
         #I_WIDTH = D_HEIGHT
-        I_WIDTH = 210
+        I_WIDTH = 220
         I_HEIGHT = D_HEIGHT
         I_INDENT = 2
         
@@ -289,22 +422,28 @@ class Quiz(QFrame):
         desktop = QApplication.desktop().screenGeometry()
         self.setGeometry(QRect(desktop.width() - H_INDENT, desktop.height() - V_INDENT, D_WIDTH, D_HEIGHT))
         
-        self.setStyleSheet("QWidget { background-color: rgb(255, 255,255); }")
+        self.setStyleSheet("QWidget { background-color: rgb(255, 255, 255); }")
         
         """Info dialog"""
         self.info.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.info.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         self.info.setGeometry(QRect(desktop.width() - H_INDENT - I_WIDTH - I_INDENT, desktop.height() - V_INDENT, I_WIDTH, I_HEIGHT))
-        #self.info.setWindowOpacity(0.80)
         
-        self.info.setStyleSheet("QWidget { background-color: rgb(255, 255,255); }")
+        self.info.setStyleSheet("QWidget { background-color: rgb(255, 255, 255); }")
+        
+        """Verbose info dialog"""
+        self.allInfo.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.allInfo.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
+        self.allInfo.setGeometry(QRect(desktop.width() - H_INDENT - I_WIDTH - I_INDENT, desktop.height() - V_INDENT, I_WIDTH, I_HEIGHT))
+        
+        self.allInfo.setStyleSheet("QWidget { background-color: rgb(255, 255, 255); }")
         
         """Session message"""
         self.status.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.status.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         self.status.setGeometry(QRect(desktop.width() - H_INDENT, desktop.height() - V_INDENT - S_HEIGHT - S_INDENT - S_CORRECTION, S_WIDTH, S_HEIGHT))
         
-        self.status.setStyleSheet("QWidget { background-color: rgb(255, 255,255); }")
+        self.status.setStyleSheet("QWidget { background-color: rgb(255, 255, 255); }")
 
     def initializeComponents(self):
         self.countdown.setMaximumHeight(6)
@@ -320,6 +459,7 @@ class Quiz(QFrame):
         
         self.sentence.setWordWrap(True)
         self.trayIcon.setIcon(QIcon('../res/cards.ico'))
+        #self.trayIcon.setIcon(QIcon('../res/suzu.ico'))
         
         self.status.message.setFont(QFont('Cambria', self.options.getMessageFontSize()))
         self.status.layout.setAlignment(Qt.AlignCenter)
@@ -329,9 +469,10 @@ class Quiz(QFrame):
         self.info.item.setFont(QFont(Fonts.HiragiNoMyoutyouProW3, 36))
         self.info.reading.setFont(QFont(Fonts.HiragiNoMyoutyouProW3, 16))
         self.info.components.setFont((QFont(Fonts.HiragiNoMyoutyouProW3, 14)))
-        self.info.item.setWordWrap(True)
+        #self.info.item.setWordWrap(True)
         self.info.components.setWordWrap(True)
         self.info.layout.setAlignment(Qt.AlignCenter)
+        self.info.layout.setMargin(0)
         #self.info.layout.setSizeConstraint(self.info.layout.SetFixedSize)       #NB: would work nice, if the anchor point was in right corner
         
         self.info.reading.setAlignment(Qt.AlignCenter)
@@ -344,6 +485,18 @@ class Quiz(QFrame):
 ####################################
 #        Updating content          #
 ####################################        
+
+    def unfill(self, layoutName): 
+        def deleteItems(layout): 
+            if layout is not None: 
+                while layout.count(): 
+                    item = layout.takeAt(0) 
+                    widget = item.widget() 
+                    if widget is not None: 
+                        widget.deleteLater() 
+                    else: 
+                        deleteItems(item.layout()) 
+        deleteItems(layoutName) 
 
     def updateContent(self):
         
@@ -396,7 +549,7 @@ class Quiz(QFrame):
             #Don't ask, really
             if j + c > n: i = i + 1; j = 0
             
-            self.grid_layout.addWidget(self.labels.pop(), i, j, r, c)
+            self.grid_layout.addWidget(self.labels.pop(), i, j, r, c)       #NB: Ehh, pop should remove label from list, shouldn't it?
             
             if j <= n: j = j + c
             else: j = 0; i = i + 1
@@ -519,6 +672,11 @@ class Quiz(QFrame):
         else:
                 self.var_4th.clicked.connect(self.wrongAnswer)
                 
+        self.var_1st.setShortcut('1')
+        self.var_2nd.setShortcut('2')
+        self.var_3rd.setShortcut('3')
+        self.var_4th.setShortcut('4')
+                
     def resetButtonsActions(self):
         self.var_1st.disconnect()
         self.var_2nd.disconnect()
@@ -539,6 +697,9 @@ class Quiz(QFrame):
         self.showSessionMessage(u'<font color=green>Correct: ' + self.srs.getCorrectAnswer() + '</font>\t|\tNext quiz: ' + self.srs.getNextQuizTime() 
                                 + '\t|\t<font color=' + self.srs.getLeitnerGradeAndColor()['color'] +  '>Grade: ' + self.srs.getLeitnerGradeAndColor()['grade'] 
                                 + ' (' + self.srs.getLeitnerGradeAndColor()['name'] + ')<font>')
+        
+        #self.answered.setShortcut('5')
+        #self.setFocus()
         
     def wrongAnswer(self):
         self.stopCountdown()
@@ -618,9 +779,22 @@ class Quiz(QFrame):
          
     def showOptions(self):
         print 'here be options!'
+        self.stopTrayLoading()
         
     def showAbout(self):
-        print 'about, yeah'
+        self.about.show()
+        
+    def startTrayLoading(self):
+        self.gifLoading.start()
+        #self.iconTimer = QTimer()
+        #self.iconTimer.timeout.connect(self.updateTrayIcon)
+        #self.iconTimer.start(100)
+        
+    def stopTrayLoading(self):
+        self.gifLoading.stop()
+        
+    def updateTrayIcon(self):
+        self.trayIcon.setIcon(self.gifLoading.currentPixmap())
         
     def showSessionMessage(self, message):
         """Shows info message"""
@@ -630,7 +804,11 @@ class Quiz(QFrame):
  
     def saveAndExit(self):
         #TODO: check if it really works as it should
+        self.hide()
+        self.status.hide()
+        self.allInfo.hide()
         self.trayIcon.showMessage('Shutting down...', 'Saving session', QSystemTrayIcon.MessageIcon.Information, 10000 )
+        #self.startTrayLoading()
         
         if self.countdownTimer.isActive():
                 self.countdownTimer.stop()
@@ -640,11 +818,10 @@ class Quiz(QFrame):
                 self.progressTimer.cancel()      
             
         self.srs.endCurrentSession()
-
-        self.status.hide()
         self.trayIcon.hide()
-        self.close()
-            
+        
+        self.close()        
+                
 if __name__ == '__main__':
 
     app = QApplication(sys.argv)
