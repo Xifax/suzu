@@ -4,7 +4,20 @@ Created on Jan 31, 2011
 
 @author: Yadavito
 '''
- 
+
+##################################
+### here goes global TODO list ###
+##################################
+
+# TODO: change button font size depending on number of characters (< 5)
+# TODO: add additional info dialog, briefly describing each kanji in compound
+# TODO: trim translation to specified number of symbols OR show translation just for example's reading
+# TODO: somehow control basic info vertical and horizontal resize (in case of 5 and more, check horizontal resize)
+# TODO: in case of inflected forms - search edict for basic form from mecab (or trimmed form)
+# TODO: check, if current kana form also has kanji form (convert, search for both in edict)
+# TODO: try basic implementation of kanjidic2 hiragana lookup
+
+
 import sys
 from datetime import datetime
 
@@ -14,15 +27,16 @@ from fonts import Fonts
 from options import Options
 from stats import Stats
 from about import About
+from constants import *
 
 from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent,QByteArray
 from PySide.QtGui import *  #TODO: fix to parsimonious imports
 
-#TODO: fix forced builtins in Aptana settings
+#TODO: (IDE) fix forced builtins in Aptana settings
 from cjktools.resources.radkdict import RadkDict
-from pkg_resources import resource_filename
+from pkg_resources import resource_filename #por qua thou err like t'ese?
 from cjktools.resources import auto_format
-from cjktools.resources import kanjidic
+#from cjktools.resources import kanjidic
 from cjktools import scripts
 
 import pythoncom, pyHook
@@ -57,9 +71,13 @@ class Filter(QObject):
             
             quiz.info.hide()
             quiz.allInfo.hide()
+
+            desktop = QApplication.desktop().screenGeometry()
+            quiz.info.setGeometry(QRect(desktop.width() - H_INDENT - I_WIDTH - I_INDENT, desktop.height() - V_INDENT, I_WIDTH, I_HEIGHT))
         
         if event.type() == QEvent.HoverEnter:
             object.setStyleSheet("QLabel { color: rgb(0, 5, 255); }")
+            
             quiz.info.item.setText(object.text())
             
             reading = quiz.srs.getWordPronunciationFromExample(object.text())
@@ -97,37 +115,10 @@ class Filter(QObject):
                 print '!'   #TODO: add distinction between actions
             if quiz.info.isVisible() and quiz.allInfo.isHidden():  
                 quiz.info.hide()
-                
-                # purging previous items
-
-                #for i in range(0, quiz.allInfo.kanji_layout.count()):
-                    #quiz.allInfo.kanji_layout.itemAt(i).widget().hide()
-                #for i in range(0, quiz.allInfo.layout.count()):
-                    #quiz.allInfo.layout.itemAt(i).widget().hide()
-                
-                #quiz.allInfo.layout.removeItem(quiz.allInfo.kanji_layout)       #TODO: DO SOMETHING!!!!!111
-                #quiz.allInfo.kanji_layout.setParent(None) 
-                
+                              
                 quiz.unfill(quiz.allInfo.layout)
-                
-                #quiz.allInfo.layout.removeItem(quiz.allInfo.kanji_layout)
-                #quiz.unfill(quiz.allInfo.layout)
-                
-                #quiz.allInfo.update()   
-                    
-                # resetting contents
-                #quiz.allInfo.layout = QVBoxLayout()
-                #quiz.allInfo.kanji_layout = QHBoxLayout()
                 quiz.allInfo.layout.setMargin(0)
                 #quiz.allInfo.layout.setAlignment(Qt.AlignCenter)
-                
-                #quiz.allInfo.kanji_layout.setMargin(0)
-                #quiz.allInfo.kanji_layout.setAlignment(Qt.AlignCenter)
-                
-                #quiz.translations = QLabel(u'')
-                #quiz.translations.setFont(QFont('Calibri', 14))
-                #quiz.translations.setWordWrap(True)
-                #quiz.translations.setAlignment(Qt.AlignCenter)
                 
                 kanjiList = []
                 script = scripts.script_boundaries(object.text())
@@ -140,9 +131,6 @@ class Filter(QObject):
                 i=0; j=0;
                 # kanji strokes
                 if len(kanjiList) > 0:
-                    
-                    #quiz.allInfo.gifs = []
-                    #quiz.allInfo.movies = []
                     
                     infile = open('../res/kanji/KANJI-MANIFEST-UNICODE-HEX', 'r')
                     text = infile.read()
@@ -172,21 +160,32 @@ class Filter(QObject):
                 translations.setWordWrap(True)
                 translations.setAlignment(Qt.AlignCenter)
                 try:
-                    search = quiz.edict[object.text()]
+                    #search = quiz.edict[object.text()]
+                    search = quiz.edict[quiz.srs.getWordNonInflectedForm(object.text())]
 
                     translationText = u''
-                    for sense in search.senses_by_reading():
+                    '''
+                    for sense in search.senses_by_reading():                #TODO: change to show only one sence
                         variants = search.senses_by_reading()[sense]
                         variants = filter (lambda e: e != '(P)', variants)
                         #TODO: add replace for ()
                         
                         translationText += '<b>' + sense + '</b>:\t' + ', '.join(variants) + '\n' #NB: somehow, '\n' does not work
-                    
+
                     #NB: crop text to n symbols    
                     translations.setText(translationText.rstrip('\n'))
+                    '''
+                    
+                    #variants = search.senses_by_reading()[quiz.srs.getWordPronunciationFromExample(object.text())]#[0]       #NB: add non-inflected form control
+                    variants = search.senses_by_reading()[quiz.srs.getWordPronounciation(quiz.srs.getWordNonInflectedForm(object.text()))][:3]  #TODO: or add option, specifying, how many variants
+                    variants = filter (lambda e: e != '(P)', variants)                                                                          #should be shown
+                    
+                    translationText += '<b>' + quiz.srs.getWordPronunciationFromExample(object.text()) + '</b>:\t' + ', '.join(variants)
+                    translations.setText(translationText.rstrip('\n'))
+                    
                     print translations.text()
                 except:
-                    translations.setText(u'no translation in edict')    #TODO: add search with +'ru', 'ku', etc
+                    translations.setText(u'no translation in edict')
                 
                 if i > 0:
                     separator = QFrame()
@@ -395,22 +394,6 @@ class Quiz(QFrame):
 ####################################
 
     def initializeComposition(self):
-        D_WIDTH = 560
-        D_HEIGHT = 176#136
-        
-        #I_WIDTH = D_HEIGHT
-        I_WIDTH = 220
-        I_HEIGHT = D_HEIGHT
-        I_INDENT = 2
-        
-        S_WIDTH = D_WIDTH
-        S_HEIGHT = 30
-        S_INDENT = I_INDENT
-        S_CORRECTION = 0
-
-        #down right corner position
-        H_INDENT = D_WIDTH + 10 #indent from right
-        V_INDENT = D_HEIGHT + 40 #indent from bottom
         
         """Main Dialog"""
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
@@ -478,6 +461,8 @@ class Quiz(QFrame):
         self.info.reading.setAlignment(Qt.AlignCenter)
         self.info.item.setAlignment(Qt.AlignCenter)
         self.info.components.setAlignment(Qt.AlignCenter)
+        
+        self.info.setLayoutDirection(Qt.RightToLeft)
         
         self.info.reading.setStyleSheet("QLabel { color: rgb(155, 155, 155); }")
         self.info.components.setStyleSheet("QLabel { color: rgb(125, 125, 125); }")
@@ -828,5 +813,8 @@ if __name__ == '__main__':
     app.setStyle('plastique')
     
     quiz = Quiz()
+    #TODO: quiz.setWindowIcon()
+    #TODO: here be options and quick dictionary
+    #test = QFrame()
 
     sys.exit(app.exec_())

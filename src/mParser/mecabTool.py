@@ -18,7 +18,7 @@ class MecabTool:
             infos['type'] = array[0]
             infos['dform'] = array[4]
             infos['reading'] = array[5]
-            infos['self'] = array[6]
+            infos['nform'] = array[6]                # non-inflected form (self)
             infos['pronunciation'] = array[7]       #NB: somehow, error hath happened here
             if not infos['type'] == "BOS/EOS":
                 word_array.append(infos)
@@ -42,4 +42,10 @@ class MecabTool:
         for w in words:
             result.append(w['pronunciation'])
             
-        return result    
+        return result  
+
+'''
+word = u'居直った'
+test = MecabTool.parseToWordsFull(word)
+print 'ok'
+'''

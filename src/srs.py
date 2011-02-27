@@ -110,21 +110,27 @@ class srsScheduler:
     def getParsedExampleInFull(self):
         return MecabTool.parseToWordsFull(self.currentExample.sentence)
     
+    def getWordNonInflectedForm(self, item):
+        try:
+            return MecabTool.parseToWordsFull(item)[0]['nform']
+        except:
+            return item
+        
+    def getWordPronounciation(self, item):
+        try:
+            return kata2hira(MecabTool.parseToWordsFull(item)[0]['pronunciation'])
+        except:
+            return item
+    
     def getNextQuizTime(self):
         return self.currentItem.next_quiz.strftime('%d %b %H:%M:%S')#('%d %b %H:%M:%S (%Y)')
     
     def getLeitnerGradeAndColor(self):
         return {'grade' : str(self.currentItem.leitner_grade), 'name' : Leitner.grades[self.currentItem.leitner_grade].key, 'color' : Leitner.correspondingColor(self.currentItem.leitner_grade)}
-    
+
 '''
 srs = srsScheduler()
 srs.initializeCurrentSession('kanji', 300)
-print srs.getNextItem()
-print srs.getCurrentExample()
-answer = srs.getCorrectAnswer()
-print answer
-quiz = srs.getQuizVariants()
-print ' '.join(quiz)
-srs.answeredCorrect()
+print srs.getWordNonInflectedForm(u'居直った')
 print '!'
 '''

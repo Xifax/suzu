@@ -6,7 +6,7 @@ Created on Feb 11, 2011
 '''
 
 from userconfig import UserConfig
-from about import __version__
+from constants import __version__
 
 class Options:
     

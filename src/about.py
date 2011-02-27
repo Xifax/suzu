@@ -13,8 +13,7 @@ from PySide.QtGui import *
 from PySide.QtCore import *
 
 from fonts import Fonts
-
-__version__ = '0.0.1'
+from constants import __version__
 
 class Filter(QObject):
     def eventFilter(self, object, event):
@@ -93,7 +92,6 @@ class About(QFrame):
         self.setGeometry(QRect(rectangle[0], rectangle[1], rectangle[2], rectangle[3]))
     '''
             
-        
     def initializeComposition(self):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)

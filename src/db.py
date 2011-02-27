@@ -283,34 +283,3 @@ class DBoMagic:
                     session.rollback()      #is it ok?
         except ValueError:
             print 'oops'    #TODO: add logger
-            
-        #def addKanjiToDb(self, kanji):
-            #test = self.db.character.filter(self.db.character.literal = kanji).one()
-'''
-db = DBoMagic()
-db.setupDB()
-
-#jlptGrade = 3
-#db.addItemsToDbJlpt(jlptGrade)
-
-db.initializeCurrentSession('kanji', 300)
-quiz = db.getNextQuizItem()
-db.updateQuizItem(quiz, 2, datetime.now() + timedelta(hours=1))
-nextQuiz = db.getNextQuizItem()
-andOnceMore = db.getNextQuizItem()
-#TODO: add resetting session
-print 'yahoo!'
-'''
-'''
-kanji = u'空'
-db.addKanjiToDb(kanji)
-if not db.checkIfKanjiHasExamples(kanji):
-    db.addSentenceToDb(kanji, u'空は青いね', u'Sky is blue, isn''t it')
-'''
-'''
-db = DBoMagic()
-db.setupDB()
-
-reading = db.findSimilarReading(u'そ')
-print ' '.join(reading)
-'''
