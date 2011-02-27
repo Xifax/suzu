@@ -127,10 +127,3 @@ class srsScheduler:
     
     def getLeitnerGradeAndColor(self):
         return {'grade' : str(self.currentItem.leitner_grade), 'name' : Leitner.grades[self.currentItem.leitner_grade].key, 'color' : Leitner.correspondingColor(self.currentItem.leitner_grade)}
-
-'''
-srs = srsScheduler()
-srs.initializeCurrentSession('kanji', 300)
-print srs.getWordNonInflectedForm(u'居直った')
-print '!'
-'''

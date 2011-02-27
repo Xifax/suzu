@@ -42,10 +42,4 @@ class MecabTool:
         for w in words:
             result.append(w['pronunciation'])
             
-        return result  
-
-'''
-word = u'居直った'
-test = MecabTool.parseToWordsFull(word)
-print 'ok'
-'''
+        return result

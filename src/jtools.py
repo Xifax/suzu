@@ -27,8 +27,3 @@ class MecApiClient:
             reading.append(node.text)
         
         return kata2hira(''.join(reading))
-    
-'''
-p = MecApiClient.getKanaReading(u'太郎はこの本を二郎を見た女性に渡した。')
-print p
-'''

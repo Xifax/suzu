@@ -9,14 +9,24 @@ Created on Jan 31, 2011
 ### here goes global TODO list ###
 ##################################
 
+# urgent
 # TODO: change button font size depending on number of characters (< 5)
 # TODO: add additional info dialog, briefly describing each kanji in compound
 # TODO: trim translation to specified number of symbols OR show translation just for example's reading
-# TODO: somehow control basic info vertical and horizontal resize (in case of 5 and more, check horizontal resize)
-# TODO: in case of inflected forms - search edict for basic form from mecab (or trimmed form)
+# PARTIALLY DONE: somehow control basic info vertical and horizontal resize (in case of 5 and more, check horizontal resize)
+# DONE: in case of inflected forms - search edict for basic form from mecab (or trimmed form)
 # TODO: check, if current kana form also has kanji form (convert, search for both in edict)
-# TODO: try basic implementation of kanjidic2 hiragana lookup
+# TODO: move all constants to constants.py
 
+# concept
+# TODO: implement 'similar kanji' system, based on comparing number of similar rads in RadDict
+# TODO: try basic implementation of jmdic words lookup
+
+# functionality
+# ...
+
+# utilitarian
+# TODO: errors logging
 
 import sys
 from datetime import datetime
@@ -41,6 +51,10 @@ from cjktools import scripts
 
 import pythoncom, pyHook
 import threading
+
+##########################################
+# Event filters/handlers and key hookers #
+##########################################
 
 class HotkeyHooker(threading.Thread): 
 
@@ -185,6 +199,7 @@ class Filter(QObject):
                     
                     print translations.text()
                 except:
+                    #TODO: try searching in jmdict!
                     translations.setText(u'no translation in edict')
                 
                 if i > 0:
@@ -219,6 +234,10 @@ class StatusFilter(QObject):
             quiz.status.hide()
             
         return False
+
+#######
+# GUI #
+#######
 
 class Quiz(QFrame):
      

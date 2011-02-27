@@ -9,7 +9,7 @@ from enum import Enum
 from datetime import datetime, timedelta
 
 class Leitner:
-    grades = Enum('None', 'SeenOnce', 'Familiar', 'Accustomed', 'Memorized', 'Digested', 'Learned', 'LongTerm', 'Shelved') #TODO: add some more
+    grades = Enum('None', 'SeenOnce', 'Familiar', 'Accustomed', 'Memorized', 'Digested', 'Learned', 'LongTerm', 'Shelved') #TODO: perhaps, add some more?
     #NB: enum must be compared by .index
     
     coeff = 1.0
@@ -44,6 +44,3 @@ class Leitner:
            Leitner.grades.LongTerm.index : 'palegreen',
            Leitner.grades.Shelved.index : 'forestgreen'
         }[grade]
-        
-#test =  Leitner.grades[0]
-#print test

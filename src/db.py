@@ -8,7 +8,7 @@ Created on Feb 12, 2011
 from sqlalchemy.ext.sqlsoup import SqlSoup
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy import asc
+from sqlalchemy import asc, and_
 from elixir import Entity,Field,Unicode,Integer,TIMESTAMP,ManyToMany,\
 metadata,session,create_all,setup_all,BOOLEAN
 
@@ -283,3 +283,97 @@ class DBoMagic:
                     session.rollback()      #is it ok?
         except ValueError:
             print 'oops'    #TODO: add logger
+            
+class DictionaryLookup:
+       
+    def __init__(self):
+        sqite = 'sqlite:///'
+        pathToRes = '../res/' 
+        jmdict = 'jmdict.db'
+        self.db = SqlSoup(sqite + pathToRes + jmdict)
+        
+    def looseLookupByReading(self, item):
+        return self.lookupItemByReading(item + u'%')
+    
+    def lookupItemByReading(self, item):
+        lookup = self.db.r_ele.filter(self.db.r_ele.value==item).all()
+        
+        results = []
+        if len(lookup) > 0:
+            for item in lookup:
+                words = self.db.k_ele.filter(self.db.k_ele.fk==item.fk).all()
+                if len(words) > 0:
+                    for word in words:
+                        results.append(word.value)
+                        
+        return results
+    
+    #TODO: add universal method to get readings, translations altogether 
+       
+    def lookupItemTranslation(self, item, lang='eng'):
+        
+        lookup = self.db.k_ele.filter(self.db.k_ele.value==item).all()
+        #lookup = self.db.k_ele.filter(self.db.k_ele.value==item).first()
+        
+        results = []
+        if len(lookup) > 0:
+        #if lookup is not None:
+            for item in lookup:
+                #senses = self.db.sense.filter(self.db.sense.fk==lookup.fk).all()
+                senses = self.db.sense.filter(self.db.sense.fk==item.fk).all()
+                if len(senses) > 0:
+                    for sense in senses:
+                        translations = self.db.gloss.filter(and_(self.db.gloss.fk==sense.id, self.db.gloss.lang==lang)).all()
+                        if len(translations) > 0:
+                            for trans in translations:
+                                results.append(trans.value)
+        return self.removeDuplicates(results)
+    
+    def lookupReadingsByItem(self, item):
+        lookup = self.db.k_ele.filter(self.db.k_ele.value==item).all()#.first()    #NB: should be .one() with try:
+        
+        results = []
+        if len(lookup) > 0:
+        #if lookup is not None:
+            for item in lookup:
+            #readings = self.db.r_ele.filter(self.db.r_ele.fk==lookup.fk).all()
+                readings = self.db.r_ele.filter(self.db.r_ele.fk==item.fk).all()
+                if len(readings) > 0:
+                    for reading in readings:
+                        results.append(reading.value)
+        
+        return self.removeDuplicates(results)
+    
+    def removeDuplicates(self, list):
+        set = {}
+        return [set.setdefault(e,e) for e in list if e not in set]
+
+dlookup = DictionaryLookup()
+'''
+res = dlookup.lookupItemByReading(u'かれ')
+print ' '.join(res)
+res = dlookup.lookupItemByReading(u'漢字')
+print ' '.join(res)
+res = dlookup.lookupItemByReading(u'かんじ')
+print ' '.join(res)
+res = dlookup.lookupItemByReading(u'おん')
+print ' '.join(res)
+res = dlookup.lookupItemByReading(u'くれぐれも')
+print ' '.join(res)
+res = dlookup.lookupItemByReading(u'みられる')
+print ' '.join(res)
+res = dlookup.lookupItemByReading(u'あそんだ')
+print ' '.join(res)
+'''
+res = dlookup.lookupReadingsByItem(u'空')
+print ' '.join(res)
+res = dlookup.lookupReadingsByItem(u'鏡')
+print ' '.join(res)
+start = datetime.now()
+#res = dlookup.lookupItemTranslation(u'手')
+#res = dlookup.lookupItemTranslation(u'軈て')
+res = dlookup.lookupItemTranslation(u'顔')
+print ' '.join(res)
+print datetime.now() - start
+
+print 'ok'

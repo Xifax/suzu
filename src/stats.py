@@ -36,5 +36,4 @@ class Stats():
         else: return str(round(float(self.answeredCorrect)/float(self.totalItemSeen), 4) * 100) + '%'
         
     def getRunningTime(self):
-        #return str(datetime.now() - self.startedQuiz)
         return time.strftime('%H:%M:%S', time.gmtime((datetime.now() - self.startedQuiz).seconds))

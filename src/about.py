@@ -24,8 +24,8 @@ class Filter(QObject):
                 object.parent().aboutApp.setStyleSheet("QLabel { color: rgb(255, 255, 255); }")
                 object.parent().about.setStyleSheet("QLabel { color: rgb(255, 255, 255); }")
                 object.parent().closeAbout.setStyleSheet("QPushButton { color: rgb(255, 255, 255); }")
-                
-                #object.parent().setStyleSheet("QWidget { border-color: rgb(255, 255, 255); }")
+ 
+                #object.parent().setStyleSheet("QFrame { border: 1px white;  }")
                 
                 object.setPixmap(object.parent().logo_2nd)
                 object.parent().logoToggle = False
@@ -80,28 +80,20 @@ class About(QFrame):
         self.initializeComposition()
         self.initializeComponents()
         
-    def center(self):
-        screen = QDesktopWidget().screenGeometry()
-        size =  self.geometry()
-        #print (screen.width()-size.width())/2
-        #print (screen.height()-size.height())/2
-        self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
-    '''  
-    def alignWithParent(self):
-        rectangle = self.parent().geometry().getRect()
-        self.setGeometry(QRect(rectangle[0], rectangle[1], rectangle[2], rectangle[3]))
-    '''
-            
     def initializeComposition(self):
+        
+        A_WIDTH = 300
+        A_HEIGHT = 200
+        
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
+        
         self.setStyleSheet("QWidget { background-color: rgb(255, 255,255); }")
         
-        #screen = QDesktopWidget().screenGeometry()
-        #self.setGeometry(QRect(screen.width()/2 - 600, screen.height()/2 - 200, 600, 200))
-        
-        #self.center()
-        #self.alignWithParent()
+        desktop = QApplication.desktop().screenGeometry()
+
+        self.setGeometry(QRect((desktop.width() - A_WIDTH)/2, (desktop.height() - A_HEIGHT)/2, A_WIDTH, A_HEIGHT))
+
         
     def initializeComponents(self):
         self.logo_1st = QPixmap("../res/suzu.png")
@@ -113,7 +105,7 @@ class About(QFrame):
         
         self.logoToggle = True
         
-        self.aboutApp.setText(u'SUZU （鈴）\nSpaced Repetition\nLearning System')
+        self.aboutApp.setText(u'SUZU （鈴）\nNonstop Spaced Repetition\nLearning System')
         self.about.setText(u'Application:\t' + __version__ + '\nPython:\t' + platform.python_version() + 
                            '\nPySide:\t' + PySide.__version__ + '\nQtCore:\t' + PySide.QtCore.__version__ + 
                            '\nPlatform:\t' + platform.system())
@@ -128,3 +120,11 @@ class About(QFrame):
 
         #self.logo_scene.addItem(QGraphicsPixmapItem(self.logo_1st))
         #self.logo.setScene(self.logo_scene)
+
+app = QApplication(sys.argv)
+app.setStyle('plastique')
+
+about = About()
+about.show()
+
+sys.exit(app.exec_())
