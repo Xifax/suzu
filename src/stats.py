@@ -16,10 +16,11 @@ class Stats():
         self.answeredCorrect = 0
         self.startedQuiz = datetime.now()
         
+        self.startMusings = ()
+        self.startQuiz = ()
+        
         self.totalMusingsTime = timedelta(seconds = 0)
-        self.averageMusingsTime = timedelta(seconds = 0)
         self.totalPostQuizTime = timedelta(seconds = 0)
-        self.averagePostQuizTime = timedelta(seconds = 0)
         
     def quizAnsweredCorrect(self):
         self.totalItemSeen = self.totalItemSeen + 1
@@ -37,3 +38,31 @@ class Stats():
         
     def getRunningTime(self):
         return time.strftime('%H:%M:%S', time.gmtime((datetime.now() - self.startedQuiz).seconds))
+    
+    def getMusingsTime(self):
+        return time.strftime('%H:%M:%S', time.gmtime(self.totalMusingsTime.seconds))
+    
+    def getQuizTime(self):
+        return time.strftime('%H:%M:%S', time.gmtime(self.totalPostQuizTime.seconds))
+    
+    def getAverageMusingTime(self):
+        if self.totalItemSeen != 0:
+            return time.strftime('%M:%S', time.gmtime(self.totalMusingsTime.seconds/self.totalItemSeen))
+        else: return '-:-'
+        
+    def getAveragePostQuizTime(self):
+        if self.totalItemSeen != 0:
+            return time.strftime('%M:%S', time.gmtime(self.totalPostQuizTime.seconds/self.totalItemSeen))
+        else: return '-:-'
+    
+    def musingsStarted(self):
+        self.startMusings = datetime.now()
+        
+    def musingsStopped(self):
+        self.totalMusingsTime += datetime.now() - self.startMusings
+        
+    def postQuizStarted(self):
+        self.startQuiz = datetime.now()
+        
+    def postQuizEnded(self):
+        self.totalPostQuizTime += datetime.now() - self.startQuiz

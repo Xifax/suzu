@@ -92,9 +92,6 @@ class OptionsDialog(QFrame):
     
     def initializeComposition(self):
         
-        O_WIDTH = 300
-        O_HEIGHT = 500
-        
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         desktop = QApplication.desktop().screenGeometry()
@@ -121,6 +118,7 @@ class OptionsDialog(QFrame):
     def initializeActions(self):
         raise NotImplementedError
 
+'''
 app = QApplication(sys.argv)
 app.setStyle('plastique')
 
@@ -128,3 +126,4 @@ options = OptionsDialog()
 options.show()
 
 sys.exit(app.exec_())
+'''

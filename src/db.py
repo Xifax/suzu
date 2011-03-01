@@ -19,17 +19,20 @@ from random import shuffle, sample, randrange
 from itertools import permutations
 
 from leitner import Leitner
+from constants import *
+
+def removeDuplicates(list):
+    set = {}
+    return [set.setdefault(e,e) for e in list if e not in set]
 
 class Kanji(Entity):
     character = Field(Unicode(1))
     tags = Field(Unicode(128))
-    #reading_kun = Field(Unicode(128))       #is this even necessary?
-    #reading_on = Field(Unicode(128))
-    #meaning = Field(Unicode(128))
     
     # srs params for kanji mode
     next_quiz = Field(TIMESTAMP)
     leitner_grade = Field(Integer)
+    
     # session params
     active = Field(BOOLEAN)
     current_session = Field(BOOLEAN)
@@ -41,12 +44,11 @@ class Kanji(Entity):
     
 class Word(Entity):
     word = Field(Unicode(16))
-    #reading = Field(Unicode(16))
-    #meaning = Field(Unicode(128))
     
     # srs params for words mode
     next_quiz = Field(TIMESTAMP)
     leitner_grade = Field(Integer)
+    
     # session params
     active = Field(BOOLEAN)
     current_session = Field(BOOLEAN)
@@ -67,20 +69,15 @@ class Example(Entity):
 class DBoMagic:
     
     def __init__(self):
-        self.dbname = 'studying.db'     #NB: transfer all constants to special class
-        self.kanjidic2 = 'kanjidic2.db'
-        self.sqite = 'sqlite:///'
-        self.pathToRes = '../res/'      #purportedly, exe will be in bin or whatever (not on the same level as /res)
-        
         self.metadata = metadata
-        self.metadata.bind = self.sqite + self.pathToRes + self.dbname      #TODO add check up
+        self.metadata.bind = SQLITE + PATH_TO_RES + DBNAME      #TODO add check up
         self.db = ()    #kanjidic2 db
         
     def setupDB(self):  
         """Initialize/read database on disk"""
-        self.db = SqlSoup(self.sqite + self.pathToRes + self.kanjidic2)     #TODO: add check up
+        self.db = SqlSoup(SQLITE + PATH_TO_RES + KANJIDIC2)     #TODO: add check up
         setup_all()
-        if not os.path.exists(self.pathToRes + self.dbname):
+        if not os.path.exists(PATH_TO_RES + DBNAME):
             create_all()
     
     def getNextQuizItem(self):          #mode and active check does not needed
@@ -137,6 +134,16 @@ class DBoMagic:
                 
         session.commit()
     '''   
+    
+    def addWordToDbAndLinkToExample(self, kanji, word, sentence):
+        if len(word) > 1:
+            if(len(Word.query.filter_by(word = word).all()) == 0):
+                newWord = Word(word = word, next_quiz = datetime.now(), leitner_grade = Leitner.grades.None.index, active = True, 
+                    current_session = False, been_in_session = 0)
+                kanji.word.append(newWord)
+                sentence.word.append(newWord)
+                session.commit()
+    
     def addKanjiToDb(self, character):
         Kanji(character = character)
         session.commit()
@@ -196,36 +203,50 @@ class DBoMagic:
             return False
         
     def findSimilarReading(self, kana):
+        
+        print kana  #NB: somewhere around here there is a bug!
+        
         size = len(kana) - 1
         #size = len(kana) - 2
         readings = []
+        selection = []
+        count = 0
         
         #selection = self.db.kunyomi_lookup.filter(self.db.kunyomi_lookup.reading.like(kana[0] + u'_' * size + kana[len(kana) - 1])).all()
-        selection = self.db.kunyomi_lookup.filter(self.db.kunyomi_lookup.reading.like(kana[0] + u'_' * size)).all()
+        #TODO: debug this section
+        #while len(selection) < 4:
+        while True:
+            selection = self.db.kunyomi_lookup.filter(self.db.kunyomi_lookup.reading.like(kana[0] + u'_' * size)).all()
+            #selection = removeDuplicates(selection)
         
-        if len(selection) >= 4:
-            #NB: magic constant!
-            rand = sample(selection, 4)
-            for read in rand:
-                readings.append(read.reading)
-                
-        else:
-            #TODO: think of something neat!
-            perm = list(map(''.join, permutations(kana)))
-            if len(perm) >= 4:
-                readings = sample(perm, 4)
+            if len(selection) >= 4:
+                rand = sample(selection, 4)
+                for read in rand:
+                    readings.append(read.reading)
+                    
             else:
-                kanaTable = [u'あ',u'い',u'ゆ',u'や',u'ら',u'り',u'る',u'れ',u'ろ',u'ま',u'む',u'み',u'め',u'も',u'な',u'に',u'ぬ',u'ね',u'の']    #TODO: something!!!11
-                i = 0; variant = u''
-                while i < 4:
-                    j = 0
-                    while j < size:
-                        variant += kanaTable[randrange(0, len(kanaTable))];    j = j + 1
-                    readings.append(variant);   variant = u'';  i = i + 1
+                perm = list(map(''.join, permutations(kana)))
+                if len(perm) >= 4:
+                    readings = sample(perm, 4)
+                else:
+                    kanaTable = KANA_TABLE
+                    i = 0; variant = u''
+                    while i < 4:
+                        j = 0
+                        while j < size:
+                            variant += kanaTable[randrange(0, len(kanaTable))];    j = j + 1
+                        readings.append(variant);   variant = u'';  i = i + 1
+                
+            readings = removeDuplicates(readings)   
+            print ' '.join(readings) #THIS IS FOR TEST ONLY     
+            count = count + 1
+            
+            if len(readings) >= 4: break
+            if count > 4: break
                 
         #inserting correct reading at random position
-        readings[randrange(0, len(readings))] = kana
-        
+        readings[randrange(0, len(readings))] = kana    #NB: !!!!! error seems to happen when there is not enough items:
+                                                        #NB: probably, there is exception somewhere, and the button values remain the same
         return readings
         #return selection[randrange(0, len(selection))]
     
@@ -287,10 +308,7 @@ class DBoMagic:
 class DictionaryLookup:
        
     def __init__(self):
-        sqite = 'sqlite:///'
-        pathToRes = '../res/' 
-        jmdict = 'jmdict.db'
-        self.db = SqlSoup(sqite + pathToRes + jmdict)
+        self.db = SqlSoup(SQLITE + PATH_TO_RES + JMDICT)
         
     def looseLookupByReading(self, item):
         return self.lookupItemByReading(item + u'%')
@@ -309,17 +327,53 @@ class DictionaryLookup:
         return results
     
     #TODO: add universal method to get readings, translations altogether 
-       
-    def lookupItemTranslation(self, item, lang='eng'):
-        
+    
+    def lookupReadingsByItem(self, item):
         lookup = self.db.k_ele.filter(self.db.k_ele.value==item).all()
-        #lookup = self.db.k_ele.filter(self.db.k_ele.value==item).first()
         
         results = []
         if len(lookup) > 0:
-        #if lookup is not None:
             for item in lookup:
-                #senses = self.db.sense.filter(self.db.sense.fk==lookup.fk).all()
+                readings = self.db.r_ele.filter(self.db.r_ele.fk==item.fk).all()
+                if len(readings) > 0:
+                    for reading in readings:
+                        results.append(reading.value)
+        
+        return removeDuplicates(results)
+    
+    def lookupItemTranslationJoin(self, item, lang='eng'):
+        '''Much faster than without join'''
+        join_sense = self.db.join(self.db.k_ele, self.db.sense, self.db.k_ele.fk==self.db.sense.fk, isouter=True)
+        join_sense_labels = self.db.with_labels(join_sense)
+        join_gloss = self.db.join(join_sense_labels, self.db.gloss, join_sense_labels.sense_id==self.db.gloss.fk)
+        
+        lookup = join_gloss.filter_by(k_ele_value=item).all()
+        result = []
+        if len(lookup) > 0:
+            for item in lookup:
+                if item.lang == lang: result.append(item.value)
+                
+        return removeDuplicates(result)
+    
+    def lookupItemByReadingJoin(self, item):
+        '''Sometimes, a wee bit faster than without join'''
+        join = self.db.join(self.db.k_ele, self.db.r_ele, self.db.k_ele.fk==self.db.r_ele.fk, isouter=True)
+        lookup = self.db.with_labels(join).filter_by(r_ele_value=item).all()
+        
+        result = []
+        if len(lookup) > 0:
+            for item in lookup:
+                result.append(item.k_ele_value)
+            
+        return removeDuplicates(result)
+    
+    '''
+    def lookupItemTranslation(self, item, lang='eng'):
+        lookup = self.db.k_ele.filter(self.db.k_ele.value==item).all()
+        
+        results = []
+        if len(lookup) > 0:
+            for item in lookup:
                 senses = self.db.sense.filter(self.db.sense.fk==item.fk).all()
                 if len(senses) > 0:
                     for sense in senses:
@@ -328,27 +382,9 @@ class DictionaryLookup:
                             for trans in translations:
                                 results.append(trans.value)
         return self.removeDuplicates(results)
-    
-    def lookupReadingsByItem(self, item):
-        lookup = self.db.k_ele.filter(self.db.k_ele.value==item).all()#.first()    #NB: should be .one() with try:
-        
-        results = []
-        if len(lookup) > 0:
-        #if lookup is not None:
-            for item in lookup:
-            #readings = self.db.r_ele.filter(self.db.r_ele.fk==lookup.fk).all()
-                readings = self.db.r_ele.filter(self.db.r_ele.fk==item.fk).all()
-                if len(readings) > 0:
-                    for reading in readings:
-                        results.append(reading.value)
-        
-        return self.removeDuplicates(results)
-    
-    def removeDuplicates(self, list):
-        set = {}
-        return [set.setdefault(e,e) for e in list if e not in set]
+    '''
 
-dlookup = DictionaryLookup()
+#dlookup = DictionaryLookup()
 '''
 res = dlookup.lookupItemByReading(u'かれ')
 print ' '.join(res)
@@ -365,15 +401,46 @@ print ' '.join(res)
 res = dlookup.lookupItemByReading(u'あそんだ')
 print ' '.join(res)
 '''
-res = dlookup.lookupReadingsByItem(u'空')
-print ' '.join(res)
-res = dlookup.lookupReadingsByItem(u'鏡')
-print ' '.join(res)
+
+#start = datetime.now()
+#res = dlookup.lookupItemTranslationJoin(u'彼')
+#print datetime.now() - start
+#print ' '.join(res)
+
+'''
 start = datetime.now()
-#res = dlookup.lookupItemTranslation(u'手')
-#res = dlookup.lookupItemTranslation(u'軈て')
-res = dlookup.lookupItemTranslation(u'顔')
+res = dlookup.lookupItemTranslation(u'彼')
 print ' '.join(res)
 print datetime.now() - start
+'''
+'''
+start = datetime.now()
+res = dlookup.lookupItemByReading(u'し')
+print datetime.now() - start
+print ' '.join(res)
 
-print 'ok'
+start = datetime.now()
+res = dlookup.lookupItemByReadingJoin(u'し')
+print datetime.now() - start
+print ' '.join(res)
+#print ' '.join(res)
+'''
+
+'''
+start = datetime.now()
+res = dlookup.lookupReadingsByItem(u'空')
+print datetime.now() - start
+print ' '.join(res)
+res = dlookup.lookupReadingsByItem(u'繋がる')
+print ' '.join(res)
+'''
+
+'''
+#start = datetime.now()
+#res = dlookup.lookupItemTranslation(u'手')
+#res = dlookup.lookupItemTranslation(u'軈て')
+#res = dlookup.lookupItemTranslation(u'顔')
+print ' '.join(res)
+print datetime.now() - start
+'''
+#print 'ok'

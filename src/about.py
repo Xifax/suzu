@@ -13,7 +13,7 @@ from PySide.QtGui import *
 from PySide.QtCore import *
 
 from fonts import Fonts
-from constants import __version__
+from constants import A_HEIGHT,A_WIDTH,__version__
 
 class Filter(QObject):
     def eventFilter(self, object, event):
@@ -82,9 +82,6 @@ class About(QFrame):
         
     def initializeComposition(self):
         
-        A_WIDTH = 300
-        A_HEIGHT = 200
-        
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         
@@ -121,6 +118,7 @@ class About(QFrame):
         #self.logo_scene.addItem(QGraphicsPixmapItem(self.logo_1st))
         #self.logo.setScene(self.logo_scene)
 
+'''
 app = QApplication(sys.argv)
 app.setStyle('plastique')
 
@@ -128,3 +126,4 @@ about = About()
 about.show()
 
 sys.exit(app.exec_())
+'''

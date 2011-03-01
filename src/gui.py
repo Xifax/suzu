@@ -12,15 +12,16 @@ Created on Jan 31, 2011
 # urgent
 # TODO: change button font size depending on number of characters (< 5)
 # TODO: add additional info dialog, briefly describing each kanji in compound
-# TODO: trim translation to specified number of symbols OR show translation just for example's reading
+# DONE: trim translation to specified number of symbols OR show translation just for example's reading
 # PARTIALLY DONE: somehow control basic info vertical and horizontal resize (in case of 5 and more, check horizontal resize)
 # DONE: in case of inflected forms - search edict for basic form from mecab (or trimmed form)
 # TODO: check, if current kana form also has kanji form (convert, search for both in edict)
-# TODO: move all constants to constants.py
+# PATIALLY DONE: move all constants to constants.py
 
 # concept
 # TODO: implement 'similar kanji' system, based on comparing number of similar rads in RadDict
 # TODO: try basic implementation of jmdic words lookup
+# TODO: add 'problematic' flag to kanji/word
 
 # functionality
 # ...
@@ -31,13 +32,16 @@ Created on Jan 31, 2011
 import sys
 from datetime import datetime
 
-from srs import srsScheduler
+
+from optionsBackend import Options
+from srsManager import srsScheduler
 from rtimer import RepeatTimer
 from fonts import Fonts
-from options import Options
 from stats import Stats
-from about import About
 from constants import *
+from about import About
+from guiOpt import OptionsDialog
+from guiQuick import QuickDictionary
 
 from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent,QByteArray
 from PySide.QtGui import *  #TODO: fix to parsimonious imports
@@ -342,11 +346,6 @@ class Quiz(QFrame):
         ### initializing ###
         self.initializeResources()
         
-        ### about and quick dictionary dialogs ###
-        
-        """About Dialog"""
-        #self.about = About(self)    #NB: if parent is quiz, about dialog will appear in left down corner
-        self.about = About()
         
         """Start!"""
         if self.options.isQuizStartingAtLaunch():
@@ -389,14 +388,14 @@ class Quiz(QFrame):
         """"Initialize Dictionaries    (will take a some time!)"""
         time_start = datetime.now()
         
-        self.trayIcon.showMessage('Loading...', 'Initializing dictionaries', QSystemTrayIcon.MessageIcon.Information, 10000 )     #TODO: change into loading dialog... or not
+        self.trayIcon.showMessage('Loading...', 'Initializing dictionaries', QSystemTrayIcon.MessageIcon.Information, 20000 )     #TODO: change into loading dialog... or not
         self.rdk = RadkDict()
         edict_file = resource_filename('cjktools_data', 'dict/je_edict')
         self.edict = auto_format.load_dictionary(edict_file)
         #self.kjd = kanjidic.Kanjidic()
         
         """Initializing srs system"""
-        self.trayIcon.showMessage('Loading...', 'Initializing databases', QSystemTrayIcon.MessageIcon.Information, 10000 )
+        self.trayIcon.showMessage('Loading...', 'Initializing databases', QSystemTrayIcon.MessageIcon.Information, 20000 )
         self.srs = srsScheduler()
         self.srs.initializeCurrentSession(self.options.getQuizMode(), self.options.getSessionSize())
         
@@ -523,11 +522,20 @@ class Quiz(QFrame):
         
         readings = self.srs.getQuizVariants()
         
-        if len(readings) == 4:
+        '''
+        if len(readings) == 4:                  #NB: HERE LIES THE GREAT ERROR
             self.var_1st.setText(readings[0])
             self.var_2nd.setText(readings[1])
             self.var_3rd.setText(readings[2])
             self.var_4th.setText(readings[3])
+        '''
+        try:
+            for i in range(0, self.layout_horizontal.count()):
+                    if i > 3: break
+                    self.layout_horizontal.itemAt(i).widget().setText(u'')
+                    self.layout_horizontal.itemAt(i).widget().setText(readings[i])
+        except:
+            print 'Not enough quiz variants'
         
     def getReadyPostLayout(self):
         self.sentence.hide()
@@ -651,7 +659,11 @@ class Quiz(QFrame):
                                           '\nItems seen:\t\t' + str(self.stats.totalItemSeen) + 
                                           '\nCorrect answers:\t\t' + str(self.stats.answeredCorrect) +
                                           '\nWrong answers:\t\t' + self.stats.getIncorrectAnswersCount() +
-                                          '\nCorrect ratio:\t\t' + self.stats.getCorrectRatioPercent(), 
+                                          '\nCorrect ratio:\t\t' + self.stats.getCorrectRatioPercent() +
+                                          '\nTotal pondering time:\t' + self.stats.getMusingsTime() +
+                                          '\nTotal post-quiz time:\t' + self.stats.getQuizTime() +
+                                          '\nAverage pondering:\t' + self.stats.getAverageMusingTime() +
+                                          '\nAverage post-quiz:\t' + self.stats.getAveragePostQuizTime(), 
                                           QSystemTrayIcon.MessageIcon.Information, 20000)
     
     def setButtonsActions(self):
@@ -688,6 +700,10 @@ class Quiz(QFrame):
         self.var_4th.disconnect()
         
     def correctAnswer(self):
+        #TODO: implement special function for all of this triplicated stuff
+        self.stats.musingsStopped()
+        self.stats.postQuizStarted()
+        
         self.stopCountdown()
         self.hideButtonsQuiz()
         
@@ -706,6 +722,9 @@ class Quiz(QFrame):
         #self.setFocus()
         
     def wrongAnswer(self):
+        self.stats.musingsStopped()
+        self.stats.postQuizStarted()
+        
         self.stopCountdown()
         self.hideButtonsQuiz()
         
@@ -723,6 +742,9 @@ class Quiz(QFrame):
                                 + ' (' + self.srs.getLeitnerGradeAndColor()['name'] + ')<font>')
             
     def timeIsOut(self):
+        self.stats.musingsStopped()
+        self.stats.postQuizStarted()
+        
         QTimer.singleShot(50, self.hideButtonsQuiz)     #NB: slight artificial lag to prevent recursive repaint crush, when mouse is suddenly over appearing button
         self.getReadyPostLayout()
         
@@ -737,6 +759,7 @@ class Quiz(QFrame):
                                 + ' (' + self.srs.getLeitnerGradeAndColor()['name'] + ')<font>')        
     
     def hideQuizAndWaitForNext(self):
+        self.stats.postQuizEnded()
         
         self.status.hide()
         self.resetButtonsActions()
@@ -776,17 +799,17 @@ class Quiz(QFrame):
 
             self.countdown.setValue(self.options.getCountdownInterval() * 100)
             self.beginCountdown()
+            self.stats.musingsStarted()
             
             if self.nextQuizTimer.isActive():   self.nextQuizTimer.stop()
         else:
             self.showSessionMessage(u'Quiz is already underway!')
          
     def showOptions(self):
-        print 'here be options!'
-        self.stopTrayLoading()
+        options.show()
         
     def showAbout(self):
-        self.about.show()
+        about.show()
         
     def startTrayLoading(self):
         self.gifLoading.start()
@@ -811,7 +834,7 @@ class Quiz(QFrame):
         self.hide()
         self.status.hide()
         self.allInfo.hide()
-        self.trayIcon.showMessage('Shutting down...', 'Saving session', QSystemTrayIcon.MessageIcon.Information, 10000 )
+        self.trayIcon.showMessage('Shutting down...', 'Saving session', QSystemTrayIcon.MessageIcon.Information, 20000 )
         #self.startTrayLoading()
         
         if self.countdownTimer.isActive():
@@ -833,7 +856,8 @@ if __name__ == '__main__':
     
     quiz = Quiz()
     #TODO: quiz.setWindowIcon()
-    #TODO: here be options and quick dictionary
-    #test = QFrame()
-
+    about = About()
+    options = OptionsDialog()
+    qdict = QuickDictionary()
+    
     sys.exit(app.exec_())
