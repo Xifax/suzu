@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 '''
-Created on Feb 7, 2011
+Created on 2009
 
-@author: Yadavito
+@author: Geoffrey Foster
 '''
 from threading import Event, Thread
 

@@ -5,7 +5,8 @@ Created on Feb 7, 2011
 @author: Yadavito
 '''
 
-from db import Kanji,Word,Example,DBoMagic
+#from db import Kanji,Word,Example,DBoMagic
+from db import DBoMagic
 from jisho import JishoClient
 from mParser.mecabTool import MecabTool
 from jcconv import kata2hira
@@ -16,7 +17,11 @@ class srsScheduler:
     #NB: only kanji mode is working properly
 
     def __init__(self):
+        print '!'
         self.db = DBoMagic()
+        
+    def activeDB(self):
+        return self.db
         
     def initializeCurrentSession(self, mode, sessionSize):
         self.currentItem = u''
@@ -51,10 +56,11 @@ class srsScheduler:
             #NB: how about some threading and queues?
             self.db.addExamplesForKanji(self.currentItem, JishoClient.getExamples(self.currentItem.character))
 
-        self.currentExample =  self.db.getExample(self.currentItem) 
-        ## add corresponding word to db
-        self.db.addWordToDb(self.currentItem, self.getWordFromExample())
-        #TODO: relate word to example sentence
+        self.currentExample = self.db.getExample(self.currentItem) 
+        ## adding corresponding word to db
+        #self.db.addWordToDb(self.currentItem, self.getWordFromExample())
+        self.db.addWordToDbAndLinkToExample(self.currentItem, self.getWordFromExample(), self.currentExample)   #NB: test version!
+        
         return self.currentExample.sentence
     
     def parseCurrentExample(self):

@@ -20,6 +20,7 @@ from itertools import permutations
 
 from leitner import Leitner
 from constants import *
+from jcconv import hira2kata
 
 def removeDuplicates(list):
     set = {}
@@ -37,6 +38,8 @@ class Kanji(Entity):
     active = Field(BOOLEAN)
     current_session = Field(BOOLEAN)
     been_in_session = Field(Integer)        #for statistics and control
+    # additional
+    #wrong_in_current_session = Field(Integer)    #NB: uncomment when db is recreated  
     
     # relationns
     example = ManyToMany('Example')
@@ -53,6 +56,8 @@ class Word(Entity):
     active = Field(BOOLEAN)
     current_session = Field(BOOLEAN)
     been_in_session = Field(Integer) 
+    # additional
+    #wrong_in_current_session = Field(Integer)
     
     # relations
     kanji = ManyToMany('Kanji')
@@ -203,8 +208,8 @@ class DBoMagic:
             return False
         
     def findSimilarReading(self, kana):
-        
-        print kana  #NB: somewhere around here there is a bug!
+        """Generate quiz variants based on correct reading ('kana' argument)"""
+        #print kana  #NB: somewhere around here there is a bug!
         
         size = len(kana) - 1
         #size = len(kana) - 2
@@ -238,24 +243,29 @@ class DBoMagic:
                         readings.append(variant);   variant = u'';  i = i + 1
                 
             readings = removeDuplicates(readings)   
-            print ' '.join(readings) #THIS IS FOR TEST ONLY     
+            #print ' '.join(readings) #THIS IS FOR TEST ONLY     
             count = count + 1
             
             if len(readings) >= 4: break
-            if count > 4: break
+            if count > 3: break
                 
-        #inserting correct reading at random position
-        readings[randrange(0, len(readings))] = kana    #NB: !!!!! error seems to happen when there is not enough items:
-                                                        #NB: probably, there is exception somewhere, and the button values remain the same
+        #inserting correct reading at random position (if not already)
+        print ' '.join(readings) #THIS IS FOR TEST ONLY     
+        if kana not in readings:
+            if len(readings) >= 4:
+                readings[randrange(0, 4)] = kana
+            else:
+                readings[randrange(0, len(readings))] = kana
+        print ' '.join(readings) #THIS IS FOR TEST ONLY     
+
         return readings
-        #return selection[randrange(0, len(selection))]
     
     def addItemsToDbJlpt(self, jlptGrade):
         try:
             jlptGrade = int(jlptGrade)
             if 0 < jlptGrade < 5:
                 selection = self.db.character.filter(self.db.character.jlpt==jlptGrade).all()
-                
+                #TODO: add or_ for grade, jlpt and frequency
                 #time for next quiz
                 now = datetime.now()
                 
@@ -293,9 +303,11 @@ class DBoMagic:
                     Kanji(character = kanji.literal, tags = jlpt, reading_kun = kun_string, reading_on = on_string, meaning = meaning_string, 
                           next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True, current_session = False, been_in_session = 0)
                     '''
+                    #check if already exists    (time consuming?)
+                    if len(Kanji.query.filter_by(character = kanji.literal).all()) == 0:
                     # for easier management
-                    Kanji(character = kanji.literal, tags = jlpt, next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True, 
-                    current_session = False, been_in_session = 0)
+                        Kanji(character = kanji.literal, tags = jlpt, next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True, 
+                        current_session = False, been_in_session = 0)
                     
                 try: 
                     session.commit()
@@ -304,6 +316,38 @@ class DBoMagic:
                     session.rollback()      #is it ok?
         except ValueError:
             print 'oops'    #TODO: add logger
+            
+    def countTotalItemsInDb(self):
+        return { 'kanji' : Kanji.query.count(), 'words': Word.query.count() }
+    
+    def countItemsByGrades(self):
+        results = {}
+        i = 1
+        jlpt = u'jlpt'
+        grade = u'grade'
+        
+        while True:    
+            results[jlpt + str(i)] = session.query(Kanji).filter(Kanji.tags.like(u'%' + jlpt + str(i) + '%' )).count()  
+            #results[jlpt + str(i)] = session.query(Kanji).group_by(Kanji.tags.like(u'%' + jlpt + str(i) + '%' )).count()
+            #results[jlpt + str(i)] = len(Kanji.query.filter(Kanji.tags.like(u'%' + jlpt + str(i) + '%' )).all())
+            
+            #results[jlpt + str(i)] = Kanji.query.count_by(Kanji.tags.like(u'%' + jlpt + str(i) + '%' ))
+            #results[jlpt + str(i)] = Kanji.query.count(tags=u'%' + jlpt + str(i) + '%' )
+            if i > 3 : break
+            else: i = i + 1
+        i = 1    
+        while True:
+            results[grade + str(i)] = session.query(Kanji).filter(Kanji.tags.like(u'%' + grade + str(i) + '%' )).count()
+            #results[grade + str(i)] = session.query(Kanji).group_by(Kanji.tags.like(u'%' + grade + str(i) + '%' )).count()
+            #results[grade + str(i)] = len(Kanji.query.filter(Kanji.tags.like(u'%' + grade + str(i) + '%' )).all())
+            
+            #results[grade + str(i)] = Kanji.query.count(tags=u'%' + grade + str(i) + '%' )
+            #results[grade + str(i)] = Kanji.query.count_by(Kanji.tags.like(u'%' + grade + str(i) + '%' ))
+            if i > 9 : break
+            else: i = i + 1
+            #Kanji.query.count
+            
+        return results
             
 class DictionaryLookup:
        
@@ -314,6 +358,7 @@ class DictionaryLookup:
         return self.lookupItemByReading(item + u'%')
     
     def lookupItemByReading(self, item):
+        #add interconvert: search both hiragana and katakana variants
         lookup = self.db.r_ele.filter(self.db.r_ele.value==item).all()
         
         results = []
@@ -338,9 +383,20 @@ class DictionaryLookup:
                 if len(readings) > 0:
                     for reading in readings:
                         results.append(reading.value)
+        #NB: perfomance, strangely, unaffected!
+        else: 
+            lookup = self.db.k_ele.filter(self.db.k_ele.value==hira2kata(item)).all()
+            if len(lookup) > 0:
+                for item in lookup:
+                    readings = self.db.r_ele.filter(self.db.r_ele.fk==item.fk).all()
+                    if len(readings) > 0:
+                        for reading in readings:
+                            results.append(reading.value)
+
         
         return removeDuplicates(results)
-    
+
+    #TODO: add implementation searching both words and readings
     def lookupItemTranslationJoin(self, item, lang='eng'):
         '''Much faster than without join'''
         join_sense = self.db.join(self.db.k_ele, self.db.sense, self.db.k_ele.fk==self.db.sense.fk, isouter=True)
@@ -348,6 +404,20 @@ class DictionaryLookup:
         join_gloss = self.db.join(join_sense_labels, self.db.gloss, join_sense_labels.sense_id==self.db.gloss.fk)
         
         lookup = join_gloss.filter_by(k_ele_value=item).all()
+        result = []
+        if len(lookup) > 0:
+            for item in lookup:
+                if item.lang == lang: result.append(item.value)
+                
+        return removeDuplicates(result)
+    
+    def lookupTranslationByReadingJoin(self, item, lang='eng'):
+        '''Much faster than without join'''
+        join_sense = self.db.join(self.db.r_ele, self.db.sense, self.db.r_ele.fk==self.db.sense.fk, isouter=True)
+        join_sense_labels = self.db.with_labels(join_sense)
+        join_gloss = self.db.join(join_sense_labels, self.db.gloss, join_sense_labels.sense_id==self.db.gloss.fk)
+        
+        lookup = join_gloss.filter_by(r_ele_value=item).all()
         result = []
         if len(lookup) > 0:
             for item in lookup:
@@ -386,6 +456,12 @@ class DictionaryLookup:
 
 #dlookup = DictionaryLookup()
 '''
+db = DBoMagic()
+db.setupDB()
+#db.initializeCurrentSession('kanji', 300)
+count = db.countTotalItemsInDb()
+'''
+'''
 res = dlookup.lookupItemByReading(u'かれ')
 print ' '.join(res)
 res = dlookup.lookupItemByReading(u'漢字')
@@ -404,6 +480,7 @@ print ' '.join(res)
 
 #start = datetime.now()
 #res = dlookup.lookupItemTranslationJoin(u'彼')
+#res = dlookup.lookupItemByReading(u'かんじ')
 #print datetime.now() - start
 #print ' '.join(res)
 
@@ -443,4 +520,4 @@ print ' '.join(res)
 print ' '.join(res)
 print datetime.now() - start
 '''
-#print 'ok'
+print 'ok'

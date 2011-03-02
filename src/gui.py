@@ -10,18 +10,18 @@ Created on Jan 31, 2011
 ##################################
 
 # urgent
-# TODO: change button font size depending on number of characters (< 5)
+# LATER: change button font size depending on number of characters (< 5)
 # TODO: add additional info dialog, briefly describing each kanji in compound
 # DONE: trim translation to specified number of symbols OR show translation just for example's reading
 # PARTIALLY DONE: somehow control basic info vertical and horizontal resize (in case of 5 and more, check horizontal resize)
 # DONE: in case of inflected forms - search edict for basic form from mecab (or trimmed form)
-# TODO: check, if current kana form also has kanji form (convert, search for both in edict)
-# PATIALLY DONE: move all constants to constants.py
+# DONE: check, if current kana form also has kanji form (convert, search for both in edict)
+# DONE: move constants to constants.py
 
 # concept
 # TODO: implement 'similar kanji' system, based on comparing number of similar rads in RadDict
-# TODO: try basic implementation of jmdic words lookup
-# TODO: add 'problematic' flag to kanji/word
+# DONE: try basic implementation of jmdic words lookup
+# DONE: add 'problematic' flag to kanji/word
 
 # functionality
 # ...
@@ -42,8 +42,10 @@ from constants import *
 from about import About
 from guiOpt import OptionsDialog
 from guiQuick import QuickDictionary
+from db import DictionaryLookup, DBoMagic
+from guiUtil import roundCorners
 
-from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent,QByteArray
+from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent,QByteArray,QThread,SIGNAL,QSize
 from PySide.QtGui import *  #TODO: fix to parsimonious imports
 
 #TODO: (IDE) fix forced builtins in Aptana settings
@@ -54,24 +56,30 @@ from cjktools.resources import auto_format
 from cjktools import scripts
 
 import pythoncom, pyHook
-import threading
+#import threading
+
 
 ##########################################
 # Event filters/handlers and key hookers #
 ##########################################
-
-class HotkeyHooker(threading.Thread): 
+   
+#class HotkeyHooker(threading.Thread, QObject): 
+class HotkeyHooker(QThread):
 
     def __init__(self, key):
-        threading.Thread.__init__(self)
+        #threading.Thread.__init__(self)
+        QThread.__init__(self)
         self.key = key
-        self.finished = threading.Event()
+        #self.finished = threading.Event()
 
     def OnKeyboardEvent(self, event):
 
         if event.Key == self.key and event.Ascii == 0:
-            quiz.trayIcon.showMessage('Test!', 'Pressed global hotkey!', QSystemTrayIcon.Information, 5000)
-            #quiz.showQuiz() #NB: it will not work!
+            #qdict.showQDict = not qdict.showQDict    #nonstop hooking
+            if quiz.isHidden():
+                qdict.showQDict = True  #while qdict is visible - no hooks!
+            else:
+                self.emit(SIGNAL('noQdict')) 
         return True
     
     def run(self):
@@ -79,6 +87,20 @@ class HotkeyHooker(threading.Thread):
         hm.KeyDown = self.OnKeyboardEvent
         hm.HookKeyboard()
         pythoncom.PumpMessages()
+
+def fade(widget):
+    if widget.windowOpacity() == 1:
+        animationTimer = RepeatTimer(0.025, fadeOut, 10)
+        animationTimer.start()
+    else:
+        animationTimer = RepeatTimer(0.025, fadeIn, 10)
+        animationTimer.start()
+
+def fadeIn():
+    quiz.info.setWindowOpacity(quiz.info.windowOpacity() + 0.4)
+    
+def fadeOut():
+    quiz.info.setWindowOpacity(quiz.info.windowOpacity() - 0.4)
 
 class Filter(QObject):
     """Sentence components mouse hover filter"""
@@ -126,16 +148,21 @@ class Filter(QObject):
                 quiz.info.translation.setText('')
             '''
             
-            quiz.info.show()
+            quiz.info.setWindowOpacity(0)
+            fade(quiz.info)
+            QTimer.singleShot(100, quiz.info.show)      #for additional smoothness
+            #quiz.info.show()
 
         if event.type() == QEvent.MouseButtonPress:
+            if event.button() == Qt.MiddleButton:
+                print 'Middle'   #TODO: add distinction between actions     
             if event.button() == Qt.LeftButton:
-                print '!'   #TODO: add distinction between actions
+                print 'Left'   #TODO: add distinction between actions
             if quiz.info.isVisible() and quiz.allInfo.isHidden():  
                 quiz.info.hide()
                               
                 quiz.unfill(quiz.allInfo.layout)
-                quiz.allInfo.layout.setMargin(0)
+                quiz.allInfo.layout.setMargin(1)
                 #quiz.allInfo.layout.setAlignment(Qt.AlignCenter)
                 
                 kanjiList = []
@@ -188,7 +215,7 @@ class Filter(QObject):
                         variants = filter (lambda e: e != '(P)', variants)
                         #TODO: add replace for ()
                         
-                        translationText += '<b>' + sense + '</b>:\t' + ', '.join(variants) + '\n' #NB: somehow, '\n' does not work
+                        translationText += '<b>' + sense + '</b>:\t' + ', '.join(variants) + '\n'
 
                     #NB: crop text to n symbols    
                     translations.setText(translationText.rstrip('\n'))
@@ -201,10 +228,32 @@ class Filter(QObject):
                     translationText += '<b>' + quiz.srs.getWordPronunciationFromExample(object.text()) + '</b>:\t' + ', '.join(variants)
                     translations.setText(translationText.rstrip('\n'))
                     
-                    print translations.text()
+                    #print translations.text()
                 except:
-                    #TODO: try searching in jmdict!
-                    translations.setText(u'no translation in edict')
+                    #quiz.jmdict.lookupItemTranslationJoin(quiz.srs.getWordNonInflectedForm(object.text()))
+                    # at first - search just kana
+                    # then - search word by reading
+                    '''    
+                    search = quiz.jmdict.lookupItemByReading(quiz.srs.getWordPronounciation(quiz.srs.getWordNonInflectedForm(object.text())))
+                    if len(search) > 0:
+                        lookup = quiz.jmdict.lookupItemTranslationJoin(search[0])
+                        if len(lookup) > 5: lookup = lookup[:5]
+                        translations.setText('<b>' + quiz.srs.getWordPronunciationFromExample(object.text())+ '</b>:\t' + ', '.join(lookup))
+                    '''
+                    ### by reading
+                    search = quiz.jmdict.lookupTranslationByReadingJoin(quiz.srs.getWordPronounciation(quiz.srs.getWordNonInflectedForm(object.text())))
+                    if len(search) > 0:
+                        if len(search) > 5: search = search[:5]
+                        translations.setText('<b>' + quiz.srs.getWordPronunciationFromExample(object.text())+ '</b>:\t' + ', '.join(search))
+                    ### by kanji
+                    else:
+                        search = quiz.jmdict.lookupItemByReading(quiz.srs.getWordPronounciation(quiz.srs.getWordNonInflectedForm(object.text())))
+                        if len(search) > 0:
+                            lookup = quiz.jmdict.lookupItemTranslationJoin(search[0])
+                            if len(lookup) > 5: lookup = lookup[:5]
+                            translations.setText('<b>' + quiz.srs.getWordPronunciationFromExample(object.text())+ '</b>:\t' + ', '.join(lookup))
+                    ### nothing found
+                    if len(search) == 0: translations.setText(u'Alas, no translation in edict or jmdict!')
                 
                 if i > 0:
                     separator = QFrame()
@@ -262,14 +311,12 @@ class Quiz(QFrame):
 
         """Items Info"""
         self.info = QFrame()
-        ##item reading
         self.info.reading = QLabel(u'')
-        ##large item
         self.info.item = QLabel(u'')
-        ##radikals or/and kanji components
         self.info.components = QLabel(u'')
         ##translation
-        self.info.translation = QLabel(u'')
+        #self.info.translation = QLabel(u'')
+        #self.info.animationTimer = ()
 
         separator_one = QFrame()
         separator_one.setFrameShape(QFrame.HLine)
@@ -360,6 +407,10 @@ class Quiz(QFrame):
             
         """Test calls here:"""
         ###    ...    ###
+        self.connect(self.hooker, SIGNAL('noQdict'), self.noQdict)
+
+    def noQdict(self):
+        self.showSessionMessage('Nope, cannot show quick dictionary during actual quiz.')
 
 ####################################
 #    Initialization procedures     #
@@ -399,10 +450,13 @@ class Quiz(QFrame):
         self.srs = srsScheduler()
         self.srs.initializeCurrentSession(self.options.getQuizMode(), self.options.getSessionSize())
         
+        """Jmdict lookup"""
+        self.jmdict = DictionaryLookup()
+        
         """Global hotkeys hook"""
         self.hooker = HotkeyHooker('Q')
         #self.hooker.setDaemon(True)    #NB: Ends thread on program end
-        #self.hooker.start()
+        self.hooker.start()
         
         time_end = datetime.now()
         self.loadingTime =  time_end - time_start
@@ -445,6 +499,11 @@ class Quiz(QFrame):
         self.status.setGeometry(QRect(desktop.width() - H_INDENT, desktop.height() - V_INDENT - S_HEIGHT - S_INDENT - S_CORRECTION, S_WIDTH, S_HEIGHT))
         
         self.status.setStyleSheet("QWidget { background-color: rgb(255, 255, 255); }")
+        
+        self.setMask(roundCorners(self.rect(),5))
+        self.status.setMask(roundCorners(self.status.rect(),5))
+        #self.info.setMask(roundCorners(self.info.rect(),5))
+        #self.allInfo.setMask(roundCorners(self.allInfo.rect(),5))
 
     def initializeComponents(self):
         self.countdown.setMaximumHeight(6)
@@ -472,7 +531,7 @@ class Quiz(QFrame):
         self.info.components.setFont((QFont(Fonts.HiragiNoMyoutyouProW3, 14)))
         #self.info.item.setWordWrap(True)
         self.info.components.setWordWrap(True)
-        self.info.layout.setAlignment(Qt.AlignCenter)
+        #self.info.layout.setAlignment(Qt.AlignCenter)
         self.info.layout.setMargin(0)
         #self.info.layout.setSizeConstraint(self.info.layout.SetFixedSize)       #NB: would work nice, if the anchor point was in right corner
         
@@ -480,10 +539,11 @@ class Quiz(QFrame):
         self.info.item.setAlignment(Qt.AlignCenter)
         self.info.components.setAlignment(Qt.AlignCenter)
         
-        self.info.setLayoutDirection(Qt.RightToLeft)
+        #self.info.setLayoutDirection(Qt.RightToLeft)
         
         self.info.reading.setStyleSheet("QLabel { color: rgb(155, 155, 155); }")
         self.info.components.setStyleSheet("QLabel { color: rgb(125, 125, 125); }")
+
 
 ####################################
 #        Updating content          #
@@ -517,11 +577,23 @@ class Quiz(QFrame):
         """Getting actual content"""
         self.srs.getNextItem()
               
+        start = datetime.now()  #testing
         example = self.srs.getCurrentExample().replace(self.srs.getWordFromExample(), u"<font color='blue'>" + self.srs.getWordFromExample() + u"</font>")
+        print datetime.now() - start    #testing
         self.sentence.setText(example)
         
+        start = datetime.now()  #testing
         readings = self.srs.getQuizVariants()
+        print datetime.now() - start    #testing
         
+        '''
+        changeFont = False
+        for item in readings:
+            if len(item) > 5 : changeFont = True
+            
+        if changeFont: self.setStyleSheet('QWidget { font-size: 11pt; }')
+        else:   self.setStyleSheet('QWidget { font-size: %spt; }' % self.options.getQuizFontSize())
+        '''
         '''
         if len(readings) == 4:                  #NB: HERE LIES THE GREAT ERROR
             self.var_1st.setText(readings[0])
@@ -529,13 +601,16 @@ class Quiz(QFrame):
             self.var_3rd.setText(readings[2])
             self.var_4th.setText(readings[3])
         '''
+        
         try:
             for i in range(0, self.layout_horizontal.count()):
                     if i > 3: break
                     self.layout_horizontal.itemAt(i).widget().setText(u'')
+                    #self.layout_horizontal.itemAt(i).setStyleSheet('QPushButton { font-size: 11pt; }')
                     self.layout_horizontal.itemAt(i).widget().setText(readings[i])
         except:
             print 'Not enough quiz variants'
+            #TODO: log this
         
     def getReadyPostLayout(self):
         self.sentence.hide()
@@ -699,8 +774,7 @@ class Quiz(QFrame):
         self.var_3rd.disconnect()
         self.var_4th.disconnect()
         
-    def correctAnswer(self):
-        #TODO: implement special function for all of this triplicated stuff
+    def postAnswerActions(self):
         self.stats.musingsStopped()
         self.stats.postQuizStarted()
         
@@ -708,6 +782,18 @@ class Quiz(QFrame):
         self.hideButtonsQuiz()
         
         self.getReadyPostLayout()
+        
+    def correctAnswer(self):
+        '''
+        self.stats.musingsStopped()
+        self.stats.postQuizStarted()
+        
+        self.stopCountdown()
+        self.hideButtonsQuiz()
+        
+        self.getReadyPostLayout()
+        '''
+        self.postAnswerActions()
         
         self.srs.answeredCorrect()
         self.stats.quizAnsweredCorrect()
@@ -722,6 +808,7 @@ class Quiz(QFrame):
         #self.setFocus()
         
     def wrongAnswer(self):
+        '''
         self.stats.musingsStopped()
         self.stats.postQuizStarted()
         
@@ -729,6 +816,8 @@ class Quiz(QFrame):
         self.hideButtonsQuiz()
         
         self.getReadyPostLayout()
+        '''
+        self.postAnswerActions()
         
         self.srs.answeredWrong()
         self.stats.quizAnsweredWrong()
@@ -762,6 +851,8 @@ class Quiz(QFrame):
         self.stats.postQuizEnded()
         
         self.status.hide()
+        self.info.hide()
+        self.allInfo.hide()
         self.resetButtonsActions()
         
         self.setWindowOpacity(1)
@@ -835,6 +926,7 @@ class Quiz(QFrame):
         self.status.hide()
         self.allInfo.hide()
         self.trayIcon.showMessage('Shutting down...', 'Saving session', QSystemTrayIcon.MessageIcon.Information, 20000 )
+        self.hooker.exit()
         #self.startTrayLoading()
         
         if self.countdownTimer.isActive():
@@ -855,9 +947,10 @@ if __name__ == '__main__':
     app.setStyle('plastique')
     
     quiz = Quiz()
-    #TODO: quiz.setWindowIcon()
+    #quiz.setWindowIcon(QIcon('../res/suzu.png'))
+    
     about = About()
-    options = OptionsDialog()
-    qdict = QuickDictionary()
+    options = OptionsDialog(quiz.srs.db, quiz.options)
+    qdict = QuickDictionary(quiz.jmdict, quiz.srs.db)
     
     sys.exit(app.exec_())
