@@ -148,10 +148,10 @@ class Filter(QObject):
                 quiz.info.translation.setText('')
             '''
             
-            quiz.info.setWindowOpacity(0)
-            fade(quiz.info)
-            QTimer.singleShot(100, quiz.info.show)      #for additional smoothness
-            #quiz.info.show()
+            #quiz.info.setWindowOpacity(0)
+            #fade(quiz.info)
+            #QTimer.singleShot(100, quiz.info.show)      #for additional smoothness
+            quiz.info.show()
 
         if event.type() == QEvent.MouseButtonPress:
             if event.button() == Qt.MiddleButton:
@@ -241,7 +241,7 @@ class Filter(QObject):
                         translations.setText('<b>' + quiz.srs.getWordPronunciationFromExample(object.text())+ '</b>:\t' + ', '.join(lookup))
                     '''
                     ### by reading
-                    search = quiz.jmdict.lookupTranslationByReadingJoin(quiz.srs.getWordPronounciation(quiz.srs.getWordNonInflectedForm(object.text())))
+                    search = quiz.jmdict.lookupTranslationByReadingJoin(quiz.srs.getWordPronounciation(quiz.srs.getWordNonInflectedForm(object.text())), quiz.options.getLookupLang())
                     if len(search) > 0:
                         if len(search) > 5: search = search[:5]
                         translations.setText('<b>' + quiz.srs.getWordPronunciationFromExample(object.text())+ '</b>:\t' + ', '.join(search))
@@ -249,7 +249,7 @@ class Filter(QObject):
                     else:
                         search = quiz.jmdict.lookupItemByReading(quiz.srs.getWordPronounciation(quiz.srs.getWordNonInflectedForm(object.text())))
                         if len(search) > 0:
-                            lookup = quiz.jmdict.lookupItemTranslationJoin(search[0])
+                            lookup = quiz.jmdict.lookupItemTranslationJoin(search[0], quiz.options.getLookupLang())
                             if len(lookup) > 5: lookup = lookup[:5]
                             translations.setText('<b>' + quiz.srs.getWordPronunciationFromExample(object.text())+ '</b>:\t' + ', '.join(lookup))
                     ### nothing found
@@ -456,7 +456,7 @@ class Quiz(QFrame):
         """Global hotkeys hook"""
         self.hooker = HotkeyHooker('Q')
         #self.hooker.setDaemon(True)    #NB: Ends thread on program end
-        self.hooker.start()
+        #self.hooker.start()
         
         time_end = datetime.now()
         self.loadingTime =  time_end - time_start
@@ -514,8 +514,8 @@ class Quiz(QFrame):
         #self.setFont(QFont(Fonts.SyoutyouProEl, 40))#self.options.getQuizFontSize()))
         
         self.sentence.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.sentence.setFont(QFont(Fonts.HiragiNoMarugotoProW4, self.options.getSentenceFontSize()))
-        #self.sentence.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))            #NB: does not work as it should!
+        #self.sentence.setFont(QFont(Fonts.HiragiNoMarugotoProW4, self.options.getSentenceFontSize()))
+        self.sentence.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))
         
         self.sentence.setWordWrap(True)
         self.trayIcon.setIcon(QIcon('../res/cards.ico'))
@@ -624,8 +624,8 @@ class Quiz(QFrame):
         i = 0; j = 0; r = 1; c = 1; n = 16
         for word in self.srs.parseCurrentExample():
             label = QLabel(word)
-            #label.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))
-            label.setFont(QFont(Fonts.HiragiNoMarugotoProW4, self.options.getSentenceFontSize()))
+            label.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))
+            #label.setFont(QFont(Fonts.HiragiNoMarugotoProW4, self.options.getSentenceFontSize()))
             
             label.setAttribute(Qt.WA_Hover, True)
             label.installEventFilter(self.filter)
@@ -714,6 +714,8 @@ class Quiz(QFrame):
         self.trayMenu.addAction(QAction('&Quiz me now!', self, shortcut="Q", triggered=self.showQuiz))
         self.pauseAction = QAction('&Start quiz!', self, shortcut="S", triggered=self.pauseQuiz)
         self.trayMenu.addAction(self.pauseAction)
+        self.trayMenu.addAction(QAction('Quick &dictionary', self, shortcut="D", triggered=self.showQuickDict))
+        self.trayMenu.addAction(QAction('Global &statistics', self, shortcut="S", triggered=self.showGlobalStatistics))
         self.trayMenu.addAction(QAction('&Options', self, shortcut="O", triggered=self.showOptions))
         self.trayMenu.addAction(QAction('&About', self, shortcut="A", triggered=self.showAbout))
         self.trayMenu.addSeparator()
@@ -902,6 +904,12 @@ class Quiz(QFrame):
     def showAbout(self):
         about.show()
         
+    def showQuickDict(self):
+        qdict.showQDict = True
+        
+    def showGlobalStatistics(self):
+        print '...'
+        
     def startTrayLoading(self):
         self.gifLoading.start()
         #self.iconTimer = QTimer()
@@ -926,7 +934,7 @@ class Quiz(QFrame):
         self.status.hide()
         self.allInfo.hide()
         self.trayIcon.showMessage('Shutting down...', 'Saving session', QSystemTrayIcon.MessageIcon.Information, 20000 )
-        self.hooker.exit()
+        #self.hooker.exit()
         #self.startTrayLoading()
         
         if self.countdownTimer.isActive():

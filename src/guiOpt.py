@@ -11,21 +11,30 @@ from PySide.QtCore import *
 from PySide.QtGui import *
 
 from constants import *
-from guiUtil import roundCorners
+from guiUtil import roundCorners, unfillLayout
 from rtimer import RepeatTimer
+from leitner import Leitner
+from fonts import Fonts
 
 class StatusFilter(QObject):
     """Status message mouse click filter"""
     def eventFilter(self, object, event):
         
         if event.type() == QEvent.HoverEnter:
-            object.status.setWindowOpacity(0.70)
+            #object.setStyleSheet("QLabel { border: 1px solid green; }")
+            object.setStyleSheet("QLabel { color: black; }")
+            object.parent().kanjiLarge.setText(object.text())
+            object.parent().words.setText(', '.join(object.params['words']))
+            object.parent().next.setText(object.params['next'])
+            object.parent().leitner.setText(object.params['leitner'])
             
         if event.type() == QEvent.HoverLeave:
-            object.status.setWindowOpacity(1)
+            #object.setStyleSheet("QLabel { border: 0px white; color:" + object.params['color'] + ";}")
+            object.setStyleSheet("QLabel { color:" + object.params['color'] + "; }")
             
         if event.type() == QEvent.MouseButtonPress:
-            object.status.hide()
+            pass
+            #object.status.hide()
             
         return False
 
@@ -44,6 +53,13 @@ class OptionsDialog(QFrame):
         self.status.layout = QHBoxLayout()
         self.status.layout.addWidget(self.status.info)
         self.status.setLayout(self.status.layout)
+        
+        # all items info
+        self.items = QDialog()
+        self.items.layout = QGridLayout()
+        self.items.infoLayout = QHBoxLayout()
+        # filter 
+        self.filter = StatusFilter()
         
         ### runtime group ###
         self.appOptionsGroup = QGroupBox('Runtime')
@@ -136,9 +152,14 @@ class OptionsDialog(QFrame):
         self.languageLabel = QLabel(u'Translation lookup in:')
         self.languageCombo = QComboBox()
         
+        self.shortcutLabel = QLabel(u'Hotkey: Ctrl + Alt + ')
+        self.shortcutCombo = QComboBox()
+        
         self.dictLayout = QGridLayout()
         self.dictLayout.addWidget(self.languageLabel, 0, 0)
         self.dictLayout.addWidget(self.languageCombo, 0, 1)
+        self.dictLayout.addWidget(self.shortcutLabel, 1, 0)
+        self.dictLayout.addWidget(self.shortcutCombo, 1, 1)
         
         self.dictGroup.setLayout(self.dictLayout)
         
@@ -146,10 +167,9 @@ class OptionsDialog(QFrame):
         self.dbGroup = QGroupBox('Database')
         self.dbGroup.setAlignment(Qt.AlignCenter)
         
-        self.totalLabel = QLabel(u'Kanji: <b>' + str(self.dbItems['kanji']) + '</b>\tWords: <b>' + str(self.dbItems['words']) + '</b><br />Total: <b>%s</b>' 
+        self.totalLabel = QLabel(u'Kanji: <b>' + str(self.dbItems['kanji']) + '</b>\tWords: <b>' + str(self.dbItems['words']) + '</b>\tTotal: <b>%s</b>' 
                                  % (self.dbItems['kanji'] + self.dbItems['words'])  )
         self.totalLabel.setWordWrap(True)
-        #self.totalLabel.heightForWidth(True)
         self.viewAll = QToolButton()
         separator_one = QFrame();   separator_one.setFrameShape(QFrame.HLine);    separator_one.setFrameShadow(QFrame.Sunken)
         self.viewAll.setText(u'View all')
@@ -159,32 +179,30 @@ class OptionsDialog(QFrame):
         self.comboCompare = QComboBox()
         self.inputFrequency = QLineEdit()
         self.inputFrequency.setToolTip(u'Enter character frequency (from 1 to 6265)')
-        self.addButton = QPushButton(u'Add items')
-        #self.addButton.setGeometry(QRect(self.addButton.pos(), QSize(50,50)))
+        self.addButton = QPushButton(u'Add by grade')
+        self.addButton.setToolTip(u'Update db according to specified criteria (duplicates will be ignored)')
+        self.addButtonFrequency = QPushButton(u'Add by frequency')
+        self.purgeButton = QPushButton(u'Purge all data from database')
+        self.purgeButtonCustom = QPushButton(u'Partial purge')
+        self.progressDb = QProgressBar()
         
         self.tagsView = QTableWidget()
-        self.tagsView.setColumnCount(4) #jlpt/grade level count active
-        self.tagsView.setHorizontalHeaderLabels(['Grade', 'Level', 'Items', 'Active'])
-        #self.tagsView.setRowCount(2)
-        self.tagsView.setFixedSize(250,130)
-        #item = QTableWidgetItem('test')
-        #item.setFlags(item.flags() & Qt.ItemIsEditable)
-        #item.setFlags(Qt.ItemIsEditable)
-        #self.tagsView.setItem(0, 0, item)
-        #self.tagsView.setItem(0, 1, QTableWidgetItem('lalala'))
         
         self.dbLayout = QGridLayout()
         self.dbLayout.addWidget(self.totalLabel, 0, 0, 1, 3)
         self.dbLayout.addWidget(self.viewAll, 0, 3, 1, 1)
         self.dbLayout.addWidget(separator_one, 1, 0, 1, 4)
         self.dbLayout.addWidget(self.addLabel, 2, 0, 1, 4)
-        self.dbLayout.addWidget(self.comboTag, 3, 1)
-        self.dbLayout.addWidget(self.comboLevel, 3, 2)
-        self.dbLayout.addWidget(self.comboCompare, 4, 1)
-        self.dbLayout.addWidget(self.inputFrequency, 4, 2)
-        self.dbLayout.addWidget(self.addButton, 3, 3, 2, 1)
+        self.dbLayout.addWidget(self.comboTag, 3, 0)
+        self.dbLayout.addWidget(self.comboLevel, 3, 1)
+        self.dbLayout.addWidget(self.comboCompare, 4, 0)
+        self.dbLayout.addWidget(self.inputFrequency, 4, 1)
+        self.dbLayout.addWidget(self.addButton, 3, 2, 1, 2)
+        self.dbLayout.addWidget(self.addButtonFrequency, 4, 2, 1, 2)
 
         self.dbLayout.addWidget(self.tagsView, 5, 0, 1, 4)
+        self.dbLayout.addWidget(self.purgeButton, 6, 0, 1, 4)
+        self.dbLayout.addWidget(self.purgeButtonCustom, 7, 0, 1, 4)
         
         self.dbGroup.setLayout(self.dbLayout)
                 
@@ -200,9 +218,12 @@ class OptionsDialog(QFrame):
         self.mainLayout = QVBoxLayout()
 
         self.bBox = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Reset | QDialogButtonBox.Close )#| QDialogButtonBox.Help)
+        self.saveRestart = QPushButton(u'Save/Restart')
+        self.bBox.addButton(self.saveRestart, QDialogButtonBox.ResetRole)
 
         self.mainLayout.addWidget(self.toolbox)
         self.mainLayout.addWidget(self.bBox)
+        self.mainLayout.addWidget(self.progressDb)
         
         self.setLayout(self.mainLayout)
         
@@ -214,6 +235,12 @@ class OptionsDialog(QFrame):
         self.updateComboLevel()
         self.updateDbTable()
         self.animationTimer = ()
+        
+        self.roundCorners()
+        
+    def roundCorners(self):
+        self.status.setMask(roundCorners(self.status.rect(),5))
+        self.setMask(roundCorners(self.rect(),5))
     
     def initializeComposition(self):
         
@@ -226,7 +253,6 @@ class OptionsDialog(QFrame):
         self.setStyleSheet("QWidget { background-color: rgb(255, 255, 255) }")
         
         self.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Maximum))
-        self.setMask(roundCorners(self.rect(),5))
         
         self.status.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.status.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
@@ -236,11 +262,16 @@ class OptionsDialog(QFrame):
         
         self.status.layout.setAlignment(Qt.AlignCenter)
         self.status.layout.setMargin(0)
-        self.status.setMask(roundCorners(self.status.rect(),5))
-    
+        
+        self.items.setWindowFlags(Qt.WindowStaysOnTopHint)
+        self.items.setStyleSheet("QDialog { background-color: rgb(255, 255, 255) }")
+            
     def initializeComponents(self):
         
         self.status.info.setFont(QFont('Cambria',self.options.getMessageFontSize()))
+        self.progressDb.setMaximumHeight(6)
+        self.progressDb.setRange(0,0)
+        self.progressDb.hide()
 
         self.appLayout.setAlignment(Qt.AlignCenter)
         self.mainLayout.setAlignment(Qt.AlignCenter)
@@ -257,9 +288,11 @@ class OptionsDialog(QFrame):
         
         self.countdownSpin.setRange(5,45)
         
-        #TODO: set session length boundaries and values
-        self.sessionItemsSpin.setRange(1, 99999)
-        self.sessionLengthSpin.setRange(1, 99999)
+        self.countdownSpin.setValue(self.options.getCountdownInterval())
+        self.intervalSpin.setValue(self.options.getRepetitionInterval())
+        
+        self.sessionItemsSpin.setRange(1, self.dbItems['kanji'] + self.dbItems['words'])
+        self.sessionLengthSpin.setRange(1, 4 * (self.dbItems['kanji'] + self.dbItems['words']))
         
         self.intervalDial.setValue(self.options.getRepetitionInterval())
         self.countdownDial.setValue(self.options.getCountdownInterval())
@@ -277,12 +310,18 @@ class OptionsDialog(QFrame):
         
         self.sessionModeCombo.addItems(['kanji', 'compounds', 'all'])
         self.languageCombo.addItems(['eng','rus'])
+        self.shortcutCombo.addItems(['Q', 'D', 'J'])
         self.comboTag.addItems(['jlpt', 'grade'])
         self.comboCompare.addItems(['=', '>', '<', '>=', '<='])
         
-        #self.status.installEventFilter(self.filter)
+        self.tagsView.setColumnCount(4) #jlpt/grade level count active
+        self.tagsView.setHorizontalHeaderLabels(['Grade', 'Level', 'Items', 'Active'])
+        self.tagsView.setFixedSize(310,130)
         
-        #TODO: add control for maximum active items in db
+        self.selectSentenceFont.setCurrentFont(QFont(self.options.getSentenceFont()))
+        self.selectQuizFont.setCurrentFont(QFont(self.options.getQuizFont()))
+        self.selectStatusFont.setCurrentFont(QFont(self.options.getMessageFont()))
+        self.selectInfoFont.setCurrentFont(QFont(self.options.getInfoFont()))
         
         #self.intervalDial.setStyleSheet("QDial { background-color: rgb(255, 170, 0) ; }")
         
@@ -299,6 +338,12 @@ class OptionsDialog(QFrame):
         self.countdownSpin.valueChanged.connect(self.updateCountdownDial)
         
         self.comboTag.currentIndexChanged.connect(self.updateComboLevel)
+        
+        self.viewAll.clicked.connect(self.showAll)
+        self.addButton.clicked.connect(self.updateDB)
+        self.purgeButton.clicked.connect(self.purgeDB)
+        
+        self.tagsView.itemChanged.connect(self.updateActiveItems)
     
     def saveOptions(self):
         """Saving all options"""
@@ -315,6 +360,8 @@ class OptionsDialog(QFrame):
         self.options.setCountdownInterval(self.countdownDial.value())
         self.options.setSessionSize(self.sessionItemsSpin.value())
         self.options.setSessionLength(self.sessionLengthSpin.value())
+        ### dictionary ###
+        self.options.setLookupLang(self.languageCombo.currentText())
         
         self.showInfo(u'All options saved!')
     
@@ -357,8 +404,10 @@ class OptionsDialog(QFrame):
             self.comboLevel.addItems(['1','2','3','4','5','6','7','8','9','10'])
             
     def updateDbTable(self):
+        self.tagsView.clearContents()
+        self.tagsView.setRowCount(0)
+        #self.tagsView.clear()
         dbStats = self.db.countItemsByGrades()
-        #self.tagsView.setRowCount(len(dbStats))
         i = 0
         for item in dbStats:
             if dbStats[item] != 0:
@@ -369,16 +418,151 @@ class OptionsDialog(QFrame):
                 else:
                     level = item[:-1]
                 
-                self.tagsView.setItem(i, 0, QTableWidgetItem(level));   self.tagsView.itemAt(i, 0).setTextAlignment(Qt.AlignCenter)#;    self.tagsView.itemAt(i, 1).setFlags(Qt.ItemIsUserCheckable)
-                self.tagsView.setItem(i, 1, QTableWidgetItem(str(grade)))#;  self.tagsView.itemAt(i, 1).setFlags(Qt.ItemIsUserCheckable) #;  self.tagsView.itemAt(i, 1).setTextAlignment(Qt.AlignCenter)
-                self.tagsView.setItem(i, 2, QTableWidgetItem(str(dbStats[item])))#;  self.tagsView.itemAt(i, 2).setFlags(Qt.ItemIsUserCheckable)#;  self.tagsView.itemAt(i, 2).setTextAlignment(Qt.AlignCenter)   
-                checkedItem = QTableWidgetItem();  checkedItem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled | Qt.ItemIsSelectable); checkedItem.setCheckState(Qt.Checked)
-                #checkedItem.setTextAlignment(Qt.AlignCenter)
+                self.tagsView.setItem(i, 0, QTableWidgetItem(level));
+                self.tagsView.setItem(i, 1, QTableWidgetItem(str(grade)))
+                self.tagsView.setItem(i, 2, QTableWidgetItem(str(dbStats[item])))
+                   
+                checkedItem = QTableWidgetItem();  checkedItem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled | Qt.ItemIsSelectable);
+                #checkedItem.checkState()
+                if self.db.checkIfActive(item):  checkedItem.setCheckState(Qt.Checked)
+
                 self.tagsView.setItem(i, 3, checkedItem)
                 i = i + 1
-        
+                
+        for row in range(0, self.tagsView.rowCount()):
+            column = 0
+            for column in range(0, self.tagsView.columnCount()):
+                self.tagsView.item(row, column).setTextAlignment(Qt.AlignCenter)
+
         self.tagsView.resizeColumnsToContents()
         self.tagsView.resizeRowsToContents()
+        
+    def updateTotalItemsLabel(self):
+        self.totalLabel.setText(u'Kanji: <b>' + str(self.dbItems['kanji']) + '</b>\tWords: <b>' + str(self.dbItems['words']) + '</b>\tTotal: <b>%s</b>' 
+                        % (self.dbItems['kanji'] + self.dbItems['words'])  )
+        
+    def updateSessionLimits(self):
+        self.sessionItemsSpin.setRange(1, self.dbItems['kanji'] + self.dbItems['words'])
+        self.sessionLengthSpin.setRange(1, 4 * (self.dbItems['kanji'] + self.dbItems['words']))
+        
+    def updateTotalItems(self):
+        self.dbItems = self.db.countTotalItemsInDb()
+        self.updateTotalItemsLabel()
+        self.updateSessionLimits()
+    
+    def updateDB(self):
+        #self.progressDb.show()
+        #self.showInfo('Updating database, please wait...')
+        if self.comboTag.currentText() == 'jlpt':
+            if self.db.addItemsToDbJlpt(int(self.comboLevel.currentText())):
+                self.showInfo('Successfully updated database.')
+        elif self.comboTag.currentText() == 'grade':
+            print 'unimplemented, yet'
+            
+        self.updateDbTable()
+        self.updateTotalItems()
+        #self.progressDb.hide()
+        
+    def updateActiveItems(self):
+        for i in range(0, self.tagsView.rowCount()):
+            try:
+                self.db.updateActive(self.tagsView.item(i, 0).text() + self.tagsView.item(i, 1).text(), self.tagsView.item(i, 3).checkState() == Qt.CheckState.Checked)
+            except:
+                #pass
+                sys.exc_clear()
+            
+    def updateDbByTags(self):
+        print '...'
+    
+    def purgeDB(self):
+        self.db.clearDB()
+        self.updateDbTable()
+        self.updateTotalItems()
+        self.showInfo('All data purged, database compacted.')
+        
+    def showAll(self):
+               
+        unfillLayout(self.items.infoLayout)
+        unfillLayout(self.items.layout)
+        self.items.infoLayout = QHBoxLayout()
+        
+        studyItems = self.db.getAllItemsInFull()
+        
+        progress = QProgressDialog('Loading items list...', 'Cancel', 0, len(studyItems), self)
+        progress.setWindowModality(Qt.WindowModal)
+        progress.show()
+        count = 0;
+        
+        i=0; j=0; max_c = 50#; max_r =50
+        for item in studyItems:
+            element = QLabel(item.character)
+            element.setFont(QFont(self.options.getInfoFont(), 20))
+            
+            #if item.active:  element.setStyleSheet("QLabel { color:" + Leitner.correspondingColor(item.leitner_grade) + "}")
+            #else: element.setStyleSheet("QLabel { color:gray }")
+            if item.active:  color = Leitner.correspondingColor(item.leitner_grade)
+            else: color = 'gray'
+            
+            element.setStyleSheet("QLabel { color:" + color + "}")
+            
+            element.setAttribute(Qt.WA_Hover, True)
+            element.installEventFilter(self.filter)
+            
+            words = []; examples = {}
+            for el in item.word:
+                words.append(el.word)
+            for el in item.example:
+                examples[el.sentence] = el.translation
+
+            element.params = {'color' : color, 'next': item.next_quiz.strftime('%d %b %H:%M:%S'), 'inSession': item.been_in_session, 
+                              'words': words, 'examples': examples, 'leitner': Leitner.grades[item.leitner_grade].key}
+            
+            self.items.layout.addWidget(element, i, j)
+            
+            count = count + 1
+            progress.setValue(count)
+            if progress.wasCanceled():
+                break
+            
+            if j > max_c:
+                i = i + 1; j = 0
+            else:
+                j = j + 1
+        
+        separator_two = QFrame();   separator_two.setFrameShape(QFrame.HLine);    separator_two.setFrameShadow(QFrame.Sunken)
+        self.items.layout.addWidget(separator_two, i + 1, 0, 1, self.items.layout.columnCount())
+        
+        self.items.kanjiLarge = QLabel(u'')
+        self.items.kanjiLarge.setFont(QFont(self.options.getSentenceFont(), 56))
+        self.items.words = QLabel(u'')
+        self.items.words.setWordWrap(True)
+        self.items.words.setFont(QFont(Fonts.MSMyoutyou, 18))
+        self.items.next = QLabel(u'')
+        self.items.leitner = QLabel(u'')
+        
+        self.items.infoLayout.addWidget(self.items.kanjiLarge)
+        self.items.infoLayout.addWidget(self.items.next)
+        self.items.infoLayout.addWidget(self.items.leitner)
+        self.items.infoLayout.addWidget(self.items.words)
+        
+        #self.items.infoLayout.setAlignment(Qt.AlignCenter)
+        
+        '''
+        #NB: or, may be, add horizontal layout?
+        self.items.layout.addWidget(self.items.kanjiLarge, i + 2, 0, 2, 2)
+        self.items.layout.addWidget(self.items.next, i + 2, 3, 1, 1)
+        self.items.layout.addWidget(self.items.leitner, i + 3, 3, 1, 1)
+        
+        #self.items.layout.addWidget(self.items.kanjiLarge, i + 2, 9, 1, 4)
+        '''
+        
+        self.items.layout.setSpacing(6)
+        #self.items.layout.addLayout(self.items.infoLayout, i + 2, 0, 1, self.items.layout.columnCount())
+        #self.items.layout.addLayout(self.items.infoLayout, i + 2, 0, 1, 8)
+        self.items.layout.addLayout(self.items.infoLayout, i + 2, self.items.layout.columnCount()/2, 1, 8)
+        
+        self.items.setLayout(self.items.layout)
+        self.items.show()
         
 #------------------- Fading methods ---------------------#
     def fadeStatus(self):
@@ -395,7 +579,7 @@ class OptionsDialog(QFrame):
     def fadeOut(self):
         self.status.setWindowOpacity(self.status.windowOpacity() - 0.1)
 
-
+'''
 app = QApplication(sys.argv)
 app.setStyle('plastique')
 
@@ -410,4 +594,4 @@ options = OptionsDialog(srsStub.db, optionsStub)
 options.show()
 
 sys.exit(app.exec_())
-
+'''

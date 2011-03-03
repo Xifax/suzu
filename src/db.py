@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import asc, and_
 from elixir import Entity,Field,Unicode,Integer,TIMESTAMP,ManyToMany,\
-metadata,session,create_all,setup_all,BOOLEAN
+metadata,session,create_all,setup_all,BOOLEAN, cleanup_all
 
 #import time
 from datetime import datetime
@@ -39,7 +39,7 @@ class Kanji(Entity):
     current_session = Field(BOOLEAN)
     been_in_session = Field(Integer)        #for statistics and control
     # additional
-    #wrong_in_current_session = Field(Integer)    #NB: uncomment when db is recreated  
+    wrong_in_current_session = Field(Integer)
     
     # relationns
     example = ManyToMany('Example')
@@ -57,7 +57,7 @@ class Word(Entity):
     current_session = Field(BOOLEAN)
     been_in_session = Field(Integer) 
     # additional
-    #wrong_in_current_session = Field(Integer)
+    wrong_in_current_session = Field(Integer)
     
     # relations
     kanji = ManyToMany('Kanji')
@@ -84,9 +84,11 @@ class DBoMagic:
         setup_all()
         if not os.path.exists(PATH_TO_RES + DBNAME):
             create_all()
+             
+        session.bind = metadata.bind
     
     def getNextQuizItem(self):          #mode and active check does not needed
-        #TODO: implement witch great verve and so on!
+        #TODO: implement with great verve and so on!
         #TODO: check if item.next_quiz is the same for multiple items
         #...
         return  Kanji.query.filter_by(current_session = True).order_by(asc(Kanji.next_quiz)).first()
@@ -239,7 +241,7 @@ class DBoMagic:
                     while i < 4:
                         j = 0
                         while j < size:
-                            variant += kanaTable[randrange(0, len(kanaTable))];    j = j + 1
+                            variant += kanaTable[randrange(0, len(kanaTable))];    j = j + 1    #FIXME: it does not work at all!
                         readings.append(variant);   variant = u'';  i = i + 1
                 
             readings = removeDuplicates(readings)   
@@ -251,7 +253,7 @@ class DBoMagic:
                 
         #inserting correct reading at random position (if not already)
         print ' '.join(readings) #THIS IS FOR TEST ONLY     
-        if kana not in readings:
+        if kana not in readings[:4]:
             if len(readings) >= 4:
                 readings[randrange(0, 4)] = kana
             else:
@@ -261,6 +263,7 @@ class DBoMagic:
         return readings
     
     def addItemsToDbJlpt(self, jlptGrade):
+        success = False
         try:
             jlptGrade = int(jlptGrade)
             if 0 < jlptGrade < 5:
@@ -304,18 +307,21 @@ class DBoMagic:
                           next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True, current_session = False, been_in_session = 0)
                     '''
                     #check if already exists    (time consuming?)
-                    if len(Kanji.query.filter_by(character = kanji.literal).all()) == 0:
+                    #if len(Kanji.query.filter_by(character = kanji.literal).all()) == 0:
+                    if session.query(Kanji).filter_by(character = kanji.literal).count()  == 0:
                     # for easier management
                         Kanji(character = kanji.literal, tags = jlpt, next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True, 
                         current_session = False, been_in_session = 0)
-                    
+                    success = True
                 try: 
                     session.commit()
                 except IntegrityError:
-                    #print 'Already in db'
-                    session.rollback()      #is it ok?
+                    session.rollback()      #is it ok in case just one item err'd?
+                    success = False
         except ValueError:
-            print 'oops'    #TODO: add logger
+            success = False    #TODO: add logger
+            
+        return success
             
     def countTotalItemsInDb(self):
         return { 'kanji' : Kanji.query.count(), 'words': Word.query.count() }
@@ -328,26 +334,40 @@ class DBoMagic:
         
         while True:    
             results[jlpt + str(i)] = session.query(Kanji).filter(Kanji.tags.like(u'%' + jlpt + str(i) + '%' )).count()  
-            #results[jlpt + str(i)] = session.query(Kanji).group_by(Kanji.tags.like(u'%' + jlpt + str(i) + '%' )).count()
-            #results[jlpt + str(i)] = len(Kanji.query.filter(Kanji.tags.like(u'%' + jlpt + str(i) + '%' )).all())
-            
-            #results[jlpt + str(i)] = Kanji.query.count_by(Kanji.tags.like(u'%' + jlpt + str(i) + '%' ))
-            #results[jlpt + str(i)] = Kanji.query.count(tags=u'%' + jlpt + str(i) + '%' )
             if i > 3 : break
             else: i = i + 1
         i = 1    
         while True:
             results[grade + str(i)] = session.query(Kanji).filter(Kanji.tags.like(u'%' + grade + str(i) + '%' )).count()
-            #results[grade + str(i)] = session.query(Kanji).group_by(Kanji.tags.like(u'%' + grade + str(i) + '%' )).count()
-            #results[grade + str(i)] = len(Kanji.query.filter(Kanji.tags.like(u'%' + grade + str(i) + '%' )).all())
-            
-            #results[grade + str(i)] = Kanji.query.count(tags=u'%' + grade + str(i) + '%' )
-            #results[grade + str(i)] = Kanji.query.count_by(Kanji.tags.like(u'%' + grade + str(i) + '%' ))
             if i > 9 : break
             else: i = i + 1
-            #Kanji.query.count
             
         return results
+    
+    def updateActive(self, criteria, flag):
+        lookup = Kanji.query.filter(Kanji.tags.like(u'%' + criteria + '%' )).all()
+        for item in lookup:
+            item.active = flag
+            
+        session.commit()
+        
+    def checkIfActive(self, criteria):
+        if session.query(Kanji).filter(Kanji.tags.like(u'%' + criteria + '%' )).count() > 0:
+            return True
+        else:
+            return False
+        
+    def getAllItemsInFull(self):
+        return Kanji.query.all()
+        
+    def clearDB(self):
+        #TODO: also clear relation tables
+        Kanji.query.delete()
+        Word.query.delete()
+        Example.query.delete()
+        #cleanup_all(drop_tables=True)
+        session.commit()
+        session.execute('VACUUM')
             
 class DictionaryLookup:
        
