@@ -49,6 +49,7 @@ class Options:
                    'log'        : False,    #enable errors logging
                    'sound'      : False,    #enable sound
                    'fade'       : True,     #enable fade effect
+                   'background' : False,     #draw item color in background
                    }),
                  ('Session',                #session parameters
                   {'size'       : 300,      #number of items in session
@@ -138,6 +139,9 @@ class Options:
     
     def isLoggingOn(self):
         return self.CONFIG.get('Runtime', 'log')
+    
+    def isBackgroundOn(self):
+        return self.CONFIG.get('Runtime', 'background')
         
     def isFadeEffectOn(self):
         return self.CONFIG.get('Runtime', 'fade')
@@ -152,10 +156,13 @@ class Options:
         self.CONFIG.set('Runtime', 'global', flag)
     
     def setLoggingOn(self, flag):
-        return self.CONFIG.set('Runtime', 'log', flag)
+        self.CONFIG.set('Runtime', 'log', flag)
         
     def setFadeEffectOn(self, flag):
-        return self.CONFIG.set('Runtime', 'fade', flag)
+        self.CONFIG.set('Runtime', 'fade', flag)
+    
+    def setBackgroundOn(self, flag):
+        self.CONFIG.set('Runtime', 'background', flag)
     
     ### dictionary ###
     def getLookupLang(self):

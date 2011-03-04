@@ -36,7 +36,7 @@ class Leitner:
         return {
            Leitner.grades.None.index : 'darkred',
            Leitner.grades.SeenOnce.index : 'red',
-           Leitner.grades.Familiar.index : 'darksalmon',
+           Leitner.grades.Familiar.index : 'darksalmon',    #TODO: change color to something more visible
            Leitner.grades.Accustomed.index : 'orange',
            Leitner.grades.Memorized.index : 'khaki',
            Leitner.grades.Digested.index : 'gold',

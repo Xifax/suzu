@@ -21,16 +21,20 @@ class StatusFilter(QObject):
     def eventFilter(self, object, event):
         
         if event.type() == QEvent.HoverEnter:
-            #object.setStyleSheet("QLabel { border: 1px solid green; }")
-            object.setStyleSheet("QLabel { color: black; }")
+            
+            if object.parent().backgroundFlag:  object.setStyleSheet("QLabel { color: white; background-color:" + object.params['color'] + "; border: 1px solid white; }")
+            #NB: alternative ~ border: 1px solid black
+            else:  object.setStyleSheet("QLabel { color: black; }")
+            
             object.parent().kanjiLarge.setText(object.text())
             object.parent().words.setText(', '.join(object.params['words']))
             object.parent().next.setText(object.params['next'])
             object.parent().leitner.setText(object.params['leitner'])
             
         if event.type() == QEvent.HoverLeave:
-            #object.setStyleSheet("QLabel { border: 0px white; color:" + object.params['color'] + ";}")
-            object.setStyleSheet("QLabel { color:" + object.params['color'] + "; }")
+
+            if object.parent().backgroundFlag: object.setStyleSheet("QLabel { color: black; background-color:" + object.params['color'] + "; border: 1px solid white;}")
+            else: object.setStyleSheet("QLabel { color:" + object.params['color'] + "; }")
             
         if event.type() == QEvent.MouseButtonPress:
             pass
@@ -71,6 +75,7 @@ class OptionsDialog(QFrame):
         self.checkSoundSignal = QCheckBox('Announce quiz with sound')
         self.checkSplashScreen = QCheckBox('Splash screen on launch')
         self.checkGlobalHotkeys = QCheckBox('Enable global hotkeys')
+        self.checkItemsBackground = QCheckBox('Show colorful background')
         
         self.appLayout = QVBoxLayout()
         self.appLayout.addWidget(self.checkAutostart)
@@ -80,6 +85,7 @@ class OptionsDialog(QFrame):
         self.appLayout.addWidget(self.checkEnableFade)
         self.appLayout.addWidget(self.checkEnableLog)
         self.appLayout.addWidget(self.checkGlobalHotkeys)
+        self.appLayout.addWidget(self.checkItemsBackground)
         
         self.appOptionsGroup.setLayout(self.appLayout)
         
@@ -128,6 +134,8 @@ class OptionsDialog(QFrame):
         
         self.sessionModeLabel = QLabel(u'Quiz mode:')
         self.sessionModeCombo = QComboBox()
+        
+        #TODO: add leitner coefficient
         
         self.srsLayout = QGridLayout()
         self.srsLayout.addWidget(self.intervalLabel, 0, 0, 1, 2)
@@ -237,6 +245,7 @@ class OptionsDialog(QFrame):
         self.animationTimer = ()
         
         self.roundCorners()
+        self.items.backgroundFlag = False
         
     def roundCorners(self):
         self.status.setMask(roundCorners(self.status.rect(),5))
@@ -307,6 +316,7 @@ class OptionsDialog(QFrame):
         self.checkEnableLog.setChecked(self.options.isLoggingOn())
         self.checkEnableFade.setChecked(self.options.isFadeEffectOn())
         self.checkSoundSignal.setChecked(self.options.isSoundOn())
+        self.checkItemsBackground.setChecked(self.options.isBackgroundOn())
         
         self.sessionModeCombo.addItems(['kanji', 'compounds', 'all'])
         self.languageCombo.addItems(['eng','rus'])
@@ -355,6 +365,7 @@ class OptionsDialog(QFrame):
         self.options.setGlobalHotkeyOn(self.checkGlobalHotkeys.isChecked())
         self.options.setLoggingOn(self.checkEnableLog.isChecked())
         self.options.setFadeEffectOn(self.checkEnableFade.isChecked())
+        self.options.setBackgroundOn(self.checkItemsBackground.isChecked())
         ### session ###
         self.options.setRepetitionInterval(self.intervalDial.value())
         self.options.setCountdownInterval(self.countdownDial.value())
@@ -486,14 +497,20 @@ class OptionsDialog(QFrame):
         unfillLayout(self.items.layout)
         self.items.infoLayout = QHBoxLayout()
         
+        self.items.backgroundFlag = self.options.isBackgroundOn()
+        
+        #self.scrollArea = QScrollArea()
+        #TODO: implement using group box: QScrollArea <- QGroupBox <- a layout () <- widgets ( created with the group box as parent and added to the layout )
+                
         studyItems = self.db.getAllItemsInFull()
         
-        progress = QProgressDialog('Loading items list...', 'Cancel', 0, len(studyItems), self)
+        #progress = QProgressDialog('Loading items list...', 'Cancel', 0, len(studyItems), self)
+        progress = QProgressDialog('Loading items list...', None, 0, len(studyItems), self)
         progress.setWindowModality(Qt.WindowModal)
         progress.show()
         count = 0;
         
-        i=0; j=0; max_c = 50#; max_r =50
+        i=0; j=0; max_c = 40#; max_r =50
         for item in studyItems:
             element = QLabel(item.character)
             element.setFont(QFont(self.options.getInfoFont(), 20))
@@ -503,7 +520,11 @@ class OptionsDialog(QFrame):
             if item.active:  color = Leitner.correspondingColor(item.leitner_grade)
             else: color = 'gray'
             
-            element.setStyleSheet("QLabel { color:" + color + "}")
+            if self.options.isBackgroundOn():
+                element.setStyleSheet("QLabel { color: black; background-color:" + color + "; border: 1px solid white; }")
+                #element.setStyleSheet("QLabel { color: blue; }")
+            else:
+                element.setStyleSheet("QLabel { color:" + color + "}")
             
             element.setAttribute(Qt.WA_Hover, True)
             element.installEventFilter(self.filter)
@@ -556,10 +577,15 @@ class OptionsDialog(QFrame):
         #self.items.layout.addWidget(self.items.kanjiLarge, i + 2, 9, 1, 4)
         '''
         
-        self.items.layout.setSpacing(6)
+        if self.options.isBackgroundOn():  self.items.layout.setSpacing(0)
+        else:   self.items.layout.setSpacing(6)
+
+        
         #self.items.layout.addLayout(self.items.infoLayout, i + 2, 0, 1, self.items.layout.columnCount())
         #self.items.layout.addLayout(self.items.infoLayout, i + 2, 0, 1, 8)
         self.items.layout.addLayout(self.items.infoLayout, i + 2, self.items.layout.columnCount()/2, 1, 8)
+        
+        #self.scrollArea.setLayout(self.items.layout)
         
         self.items.setLayout(self.items.layout)
         self.items.show()
@@ -579,7 +605,7 @@ class OptionsDialog(QFrame):
     def fadeOut(self):
         self.status.setWindowOpacity(self.status.windowOpacity() - 0.1)
 
-'''
+
 app = QApplication(sys.argv)
 app.setStyle('plastique')
 
@@ -594,4 +620,3 @@ options = OptionsDialog(srsStub.db, optionsStub)
 options.show()
 
 sys.exit(app.exec_())
-'''

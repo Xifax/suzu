@@ -8,7 +8,7 @@ Created on Feb 12, 2011
 from sqlalchemy.ext.sqlsoup import SqlSoup
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy import asc, and_
+from sqlalchemy import asc, and_, or_
 from elixir import Entity,Field,Unicode,Integer,TIMESTAMP,ManyToMany,\
 metadata,session,create_all,setup_all,BOOLEAN, cleanup_all
 
@@ -16,7 +16,7 @@ metadata,session,create_all,setup_all,BOOLEAN, cleanup_all
 from datetime import datetime
 import os.path
 from random import shuffle, sample, randrange
-from itertools import permutations
+from itertools import permutations, repeat
 
 from leitner import Leitner
 from constants import *
@@ -25,6 +25,11 @@ from jcconv import hira2kata
 def removeDuplicates(list):
     set = {}
     return [set.setdefault(e,e) for e in list if e not in set]
+
+class Session(Entity):
+    date = Field(TIMESTAMP)
+    items = Field(Integer)
+    time = Field(Integer)
 
 class Kanji(Entity):
     character = Field(Unicode(1))
@@ -211,45 +216,48 @@ class DBoMagic:
         
     def findSimilarReading(self, kana):
         """Generate quiz variants based on correct reading ('kana' argument)"""
-        #print kana  #NB: somewhere around here there is a bug!
         
         size = len(kana) - 1
-        #size = len(kana) - 2
         readings = []
         selection = []
         count = 0
         
-        #selection = self.db.kunyomi_lookup.filter(self.db.kunyomi_lookup.reading.like(kana[0] + u'_' * size + kana[len(kana) - 1])).all()
-        #TODO: debug this section
-        #while len(selection) < 4:
-        while True:
-            selection = self.db.kunyomi_lookup.filter(self.db.kunyomi_lookup.reading.like(kana[0] + u'_' * size)).all()
-            #selection = removeDuplicates(selection)
-        
-            if len(selection) >= 4:
-                rand = sample(selection, 4)
-                for read in rand:
-                    readings.append(read.reading)
-                    
-            else:
-                perm = list(map(''.join, permutations(kana)))
-                if len(perm) >= 4:
-                    readings = sample(perm, 4)
-                else:
-                    kanaTable = KANA_TABLE
-                    i = 0; variant = u''
-                    while i < 4:
-                        j = 0
-                        while j < size:
-                            variant += kanaTable[randrange(0, len(kanaTable))];    j = j + 1    #FIXME: it does not work at all!
-                        readings.append(variant);   variant = u'';  i = i + 1
-                
-            readings = removeDuplicates(readings)   
-            #print ' '.join(readings) #THIS IS FOR TEST ONLY     
-            count = count + 1
+        if len(kana) > 1:
+            while True:
+                selection = self.db.kunyomi_lookup.filter(self.db.kunyomi_lookup.reading.like(kana[0] + u'_' * size)).all()
             
-            if len(readings) >= 4: break
-            if count > 3: break
+                if len(selection) >= 4:
+                    rand = sample(selection, 4)
+                    for read in rand:
+                        readings.append(read.reading)
+                        
+                else:
+                    perm = list(map(''.join, permutations(kana)))
+                    if len(perm) >= 4:
+                        readings = sample(perm, 4)
+                    else:
+                        i = 0; variant = u''
+                        while i < 4:
+                            j = 0
+                            while j < size:
+                                variant += KANA_TABLE[randrange(0, len(KANA_TABLE))];    j = j + 1
+                            readings.append(variant);   variant = u'';  i = i + 1
+                    
+                readings = removeDuplicates(readings)   
+                count = count + 1
+                
+                if len(readings) >= 4: break
+                if count > 3: break
+                
+        elif len(kana) == 1:
+            i = 0
+            while True:
+                for _ in repeat(None, 4):
+                    readings.append(KANA_TABLE[randrange(0, len(KANA_TABLE))]) 
+                readings = removeDuplicates(readings)   
+                if len(readings) >= 4: break
+                elif i < 4: i = i + 1
+                else: break
                 
         #inserting correct reading at random position (if not already)
         print ' '.join(readings) #THIS IS FOR TEST ONLY     
@@ -262,6 +270,83 @@ class DBoMagic:
 
         return readings
     
+    
+    def addItemsToDb(self, jlpt=-1, grade=-1, frequency=0, compare='='):
+        success = False
+        
+        if frequency == 0:
+            try:
+                jlpt = int(jlpt)
+                grade = int(grade)
+                
+                if (0 < grade < 11) or (0 < jlpt < 5):
+                    #if jlpt != '-1':
+                    #elif grade != '-1':
+                    selection = self.db.character.filter(or_(self.db.character.grade==grade, self.db.character.jlpt==jlpt)).all()   #add timers
+                    
+                    now = datetime.now()
+                    grade = u'grade' + str(grade)
+                    jlpt = u'jlpt' + str(jlpt)
+                    
+                    for kanji in selection:
+                        if session.query(Kanji).filter_by(character = kanji.literal).count()  == 0:
+                            Kanji(character = kanji.literal, tags = jlpt + u';' + grade, next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True, 
+                            current_session = False, been_in_session = 0)
+                    
+                    success = True
+                    try: 
+                        session.commit()
+                    except IntegrityError:
+                        session.rollback()
+                        success = False
+            except:
+                success = False
+        elif frequency > 0:
+            
+            selection = self.db.character.filter(self.db.character.freq==frequency).all()
+            for kanji in selection:
+                        if session.query(Kanji).filter_by(character = kanji.literal).count()  == 0:
+                            Kanji(character = kanji.literal, tags = u'', next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True, 
+                            current_session = False, been_in_session = 0)
+                    
+            success = True
+            try:
+                session.commit()
+            except IntegrityError:
+                session.rollback()
+                success = False
+            
+        return success
+    
+    def addItemsToDbByFrequency(self, frequency, compare):
+        pass
+    
+    def addItemsToDbGrade(self, grade):
+        success = False
+        try:
+            grade = int(grade)
+            if 0 < grade < 11:
+                selection = self.db.character.filter(self.db.character.grade==grade).all()
+                
+                now = datetime.now()
+                grade = u'grade' + str(grade)
+                
+                for kanji in selection:
+                    if session.query(Kanji).filter_by(character = kanji.literal).count()  == 0:
+                        Kanji(character = kanji.literal, tags = grade, next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True, 
+                        current_session = False, been_in_session = 0)
+                
+                success = True
+                try: 
+                    session.commit()
+                except IntegrityError:
+                    session.rollback()
+                    success = False
+        except:
+            success = False
+            
+        return success
+
     def addItemsToDbJlpt(self, jlptGrade):
         success = False
         try:
@@ -475,12 +560,14 @@ class DictionaryLookup:
     '''
 
 #dlookup = DictionaryLookup()
-'''
+
 db = DBoMagic()
 db.setupDB()
 #db.initializeCurrentSession('kanji', 300)
-count = db.countTotalItemsInDb()
-'''
+#count = db.countTotalItemsInDb()
+res = db.findSimilarReading(u'や')
+check = db.addItemsToDb(1)
+
 '''
 res = dlookup.lookupItemByReading(u'かれ')
 print ' '.join(res)
