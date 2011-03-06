@@ -1,4 +1,4 @@
-#Wed Mar 02 18:04:41 MSK 2011
+#Sun Mar 06 01:58:44 MSK 2011
 eclipse.preferences.version=1
 encoding//src/about.py=utf-8
 encoding//src/constants.py=utf-8
@@ -6,6 +6,7 @@ encoding//src/db.py=utf-8
 encoding//src/fonts.py=utf-8
 encoding//src/gui.py=utf-8
 encoding//src/guiOpt.py=utf-8
+encoding//src/guiQuick.py=utf-8
 encoding//src/guiUtil.py=utf-8
 encoding//src/jisho.py=utf-8
 encoding//src/jtools.py=utf-8

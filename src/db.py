@@ -5,22 +5,22 @@ Created on Feb 12, 2011
 @author: Yadavito
 '''
 
-from sqlalchemy.ext.sqlsoup import SqlSoup
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm.exc import NoResultFound
+from constants import *
+from datetime import datetime
+from elixir import Entity, Field, Unicode, Integer, TIMESTAMP, ManyToMany, \
+    metadata, session, create_all, setup_all, BOOLEAN, cleanup_all
+from itertools import permutations, repeat
+from jcconv import hira2kata
+from leitner import Leitner
+from random import shuffle, sample, randrange
 from sqlalchemy import asc, and_, or_
-from elixir import Entity,Field,Unicode,Integer,TIMESTAMP,ManyToMany,\
-metadata,session,create_all,setup_all,BOOLEAN, cleanup_all
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.sqlsoup import SqlSoup
+from sqlalchemy.orm.exc import NoResultFound
+import os.path
 
 #import time
-from datetime import datetime
-import os.path
-from random import shuffle, sample, randrange
-from itertools import permutations, repeat
 
-from leitner import Leitner
-from constants import *
-from jcconv import hira2kata
 
 def removeDuplicates(list):
     set = {}
@@ -92,7 +92,7 @@ class DBoMagic:
              
         session.bind = metadata.bind
     
-    def getNextQuizItem(self):          #mode and active check does not needed
+    def getNextQuizItem(self):
         #TODO: implement with great verve and so on!
         #TODO: check if item.next_quiz is the same for multiple items
         #...
@@ -100,9 +100,11 @@ class DBoMagic:
         
     # each time application is launched    (session_size from options) #mode for kanji, words or both
     def initializeCurrentSession(self, mode, sessionSize):
-        if mode == 'kanji':
+        #if mode == 'kanji':
+        if mode == modes.kanji:
             selection = Kanji.query.filter_by(active = True).all()
-        elif mode == 'words':
+        #elif mode == 'words':
+        elif mode == modes.words:
             selection = Word.query.filter_by(active = True).all()
         else:
             selection = () # Kanji && Words?
@@ -458,22 +460,45 @@ class DictionaryLookup:
        
     def __init__(self):
         self.db = SqlSoup(SQLITE + PATH_TO_RES + JMDICT)
+           
+    def looseLookupByReadingJoin(self, item, pre=False, post=True):
+        '''Quite slow, but faster than without join'''
+        if pre:
+            query = u'%' + item
+        elif post:
+            query = item + u'%'
         
-    def looseLookupByReading(self, item):
-        return self.lookupItemByReading(item + u'%')
+        join = self.db.join(self.db.k_ele, self.db.r_ele, self.db.k_ele.fk==self.db.r_ele.fk, isouter=True)
+        table = self.db.with_labels(join)
+        lookup = table.filter(table.r_ele_value.like(query)).all()
+        
+        result = []
+        if len(lookup) > 0:
+            for item in lookup:
+                result.append(item.k_ele_value)
+        else:
+            lookup = table.filter(table.r_ele_value.like(hira2kata(item))).all()    #TODO: it seems to be not working properly 
+            for item in lookup:
+                result.append(item.k_ele_value)
+            
+        return removeDuplicates(result)
     
     def lookupItemByReading(self, item):
         #add interconvert: search both hiragana and katakana variants
         lookup = self.db.r_ele.filter(self.db.r_ele.value==item).all()
         
         results = []
-        if len(lookup) > 0:
+        if len(lookup) > 0:         #TODO: remove all those check up's - not needed
             for item in lookup:
                 words = self.db.k_ele.filter(self.db.k_ele.fk==item.fk).all()
-                if len(words) > 0:
-                    for word in words:
-                        results.append(word.value)
-                        
+                for word in words:
+                    results.append(word.value)
+        else: #TODO: check perfomance
+            lookup = self.db.r_ele.filter(self.db.r_ele.value==hira2kata(item)).all()
+            for item in lookup:
+                words = self.db.r_ele.filter(self.db.r_ele.fk==item.fk).all()
+                for reading in words:
+                    results.append(reading.value)
         return results
     
     #TODO: add universal method to get readings, translations altogether 
@@ -488,7 +513,7 @@ class DictionaryLookup:
                 if len(readings) > 0:
                     for reading in readings:
                         results.append(reading.value)
-        #NB: perfomance, strangely, unaffected!
+        '''                
         else: 
             lookup = self.db.k_ele.filter(self.db.k_ele.value==hira2kata(item)).all()
             if len(lookup) > 0:
@@ -498,7 +523,7 @@ class DictionaryLookup:
                         for reading in readings:
                             results.append(reading.value)
 
-        
+        '''
         return removeDuplicates(results)
 
     #TODO: add implementation searching both words and readings
@@ -560,14 +585,14 @@ class DictionaryLookup:
     '''
 
 #dlookup = DictionaryLookup()
-
+'''
 db = DBoMagic()
 db.setupDB()
 #db.initializeCurrentSession('kanji', 300)
 #count = db.countTotalItemsInDb()
 res = db.findSimilarReading(u'や')
 check = db.addItemsToDb(1)
-
+'''
 '''
 res = dlookup.lookupItemByReading(u'かれ')
 print ' '.join(res)
@@ -588,9 +613,8 @@ print ' '.join(res)
 #start = datetime.now()
 #res = dlookup.lookupItemTranslationJoin(u'彼')
 #res = dlookup.lookupItemByReading(u'かんじ')
-#print datetime.now() - start
 #print ' '.join(res)
-
+#print datetime.now() - start
 '''
 start = datetime.now()
 res = dlookup.lookupItemTranslation(u'彼')
@@ -602,13 +626,13 @@ start = datetime.now()
 res = dlookup.lookupItemByReading(u'し')
 print datetime.now() - start
 print ' '.join(res)
-
-start = datetime.now()
-res = dlookup.lookupItemByReadingJoin(u'し')
-print datetime.now() - start
-print ' '.join(res)
-#print ' '.join(res)
 '''
+#start = datetime.now()
+#res = dlookup.lookupItemByReadingJoin(u'かんじ')
+#print ' '.join(res)
+#print datetime.now() - start
+#print ' '.join(res)
+
 
 '''
 start = datetime.now()

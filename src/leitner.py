@@ -9,18 +9,22 @@ from enum import Enum
 from datetime import datetime, timedelta
 
 class Leitner:
+    #TODO: move to constants.py, really
     grades = Enum('None', 'SeenOnce', 'Familiar', 'Accustomed', 'Memorized', 'Digested', 'Learned', 'LongTerm', 'Shelved') #TODO: perhaps, add some more?
-    #NB: enum must be compared by .index
+    #NB: enum objects must be compared by .index with integer values
     
+    # scaling coefficient
     coeff = 1.0
     
     #NB: algorithm should select from earliest date ever (even if already in past)
     
-    #accepts integer value
+    # accepts integer value
+    # 'time' param not required, we're counting from 'now'
     @staticmethod
-    def nextQuiz(grade):         # 'time' param not required, we're counting from 'now'
+    def nextQuiz(grade):
+        '''Time for next quiz, based on leitner grade (scaled by Leitner.coeff)'''
         return {
-           Leitner.grades.None.index : datetime.now(),  # it's not necessary to fill in the corresponding db field  # or it may be better to specify nothing at all
+           Leitner.grades.None.index : datetime.now(),
            Leitner.grades.SeenOnce.index : datetime.now() + timedelta(minutes = Leitner.coeff * 20),  #or 15, 30?
            Leitner.grades.Familiar.index : datetime.now() + timedelta(hours = Leitner.coeff * 2),     #or 2, 3?
            Leitner.grades.Accustomed.index : datetime.now() + timedelta(hours = Leitner.coeff * 12),
@@ -33,6 +37,7 @@ class Leitner:
         
     @staticmethod
     def correspondingColor(grade):
+        '''Color representation of lietner grade'''
         return {
            Leitner.grades.None.index : 'darkred',
            Leitner.grades.SeenOnce.index : 'red',

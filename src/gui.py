@@ -5,6 +5,8 @@ Created on Jan 31, 2011
 @author: Yadavito
 '''
 
+# -> this is main application module <- #
+
 ##################################
 ### here goes global TODO list ###
 ##################################
@@ -12,16 +14,10 @@ Created on Jan 31, 2011
 # urgent
 # LATER: change button font size depending on number of characters (< 5)
 # TODO: add additional info dialog, briefly describing each kanji in compound
-# DONE: trim translation to specified number of symbols OR show translation just for example's reading
 # PARTIALLY DONE: somehow control basic info vertical and horizontal resize (in case of 5 and more, check horizontal resize)
-# DONE: in case of inflected forms - search edict for basic form from mecab (or trimmed form)
-# DONE: check, if current kana form also has kanji form (convert, search for both in edict)
-# DONE: move constants to constants.py
 
 # concept
 # TODO: implement 'similar kanji' system, based on comparing number of similar rads in RadDict
-# DONE: try basic implementation of jmdic words lookup
-# DONE: add 'problematic' flag to kanji/word
 
 # functionality
 # ...
@@ -42,10 +38,10 @@ from constants import *
 from about import About
 from guiOpt import OptionsDialog
 from guiQuick import QuickDictionary
-from db import DictionaryLookup, DBoMagic
-from guiUtil import roundCorners
+from db import DictionaryLookup
+from guiUtil import roundCorners, unfillLayout
 
-from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent,QByteArray,QThread,SIGNAL,QSize
+from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent,QByteArray,QThread,SIGNAL
 from PySide.QtGui import *  #TODO: fix to parsimonious imports
 
 #TODO: (IDE) fix forced builtins in Aptana settings
@@ -161,7 +157,8 @@ class Filter(QObject):
             if quiz.info.isVisible() and quiz.allInfo.isHidden():  
                 quiz.info.hide()
                               
-                quiz.unfill(quiz.allInfo.layout)
+                #quiz.unfill(quiz.allInfo.layout)
+                unfillLayout(quiz.allInfo.layout)
                 quiz.allInfo.layout.setMargin(1)
                 #quiz.allInfo.layout.setAlignment(Qt.AlignCenter)
                 
@@ -548,7 +545,7 @@ class Quiz(QFrame):
 ####################################
 #        Updating content          #
 ####################################        
-
+    '''
     def unfill(self, layoutName): 
         def deleteItems(layout): 
             if layout is not None: 
@@ -560,7 +557,7 @@ class Quiz(QFrame):
                     else: 
                         deleteItems(item.layout()) 
         deleteItems(layoutName) 
-
+    '''
     def updateContent(self):
         
         """Resetting multi-label sentence"""
@@ -952,9 +949,9 @@ class Quiz(QFrame):
 if __name__ == '__main__':
 
     app = QApplication(sys.argv)
-    app.setStyle('plastique')
     
     quiz = Quiz()
+    if quiz.options.isPlastique():  app.setStyle('plastique')
     #quiz.setWindowIcon(QIcon('../res/suzu.png'))
     
     about = About()

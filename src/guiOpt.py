@@ -76,6 +76,7 @@ class OptionsDialog(QFrame):
         self.checkSplashScreen = QCheckBox('Splash screen on launch')
         self.checkGlobalHotkeys = QCheckBox('Enable global hotkeys')
         self.checkItemsBackground = QCheckBox('Show colorful background')
+        self.checkPlastiqueTheme = QCheckBox("Use 'plastique' theme")
         
         self.appLayout = QVBoxLayout()
         self.appLayout.addWidget(self.checkAutostart)
@@ -86,6 +87,7 @@ class OptionsDialog(QFrame):
         self.appLayout.addWidget(self.checkEnableLog)
         self.appLayout.addWidget(self.checkGlobalHotkeys)
         self.appLayout.addWidget(self.checkItemsBackground)
+        self.appLayout.addWidget(self.checkPlastiqueTheme)
         
         self.appOptionsGroup.setLayout(self.appLayout)
         
@@ -135,7 +137,7 @@ class OptionsDialog(QFrame):
         self.sessionModeLabel = QLabel(u'Quiz mode:')
         self.sessionModeCombo = QComboBox()
         
-        #TODO: add leitner coefficient
+        #TODO: add leitner coefficient tweak (0.1 ~ 2.0)
         
         self.srsLayout = QGridLayout()
         self.srsLayout.addWidget(self.intervalLabel, 0, 0, 1, 2)
@@ -317,6 +319,7 @@ class OptionsDialog(QFrame):
         self.checkEnableFade.setChecked(self.options.isFadeEffectOn())
         self.checkSoundSignal.setChecked(self.options.isSoundOn())
         self.checkItemsBackground.setChecked(self.options.isBackgroundOn())
+        self.checkPlastiqueTheme.setChecked(self.options.isPlastique())
         
         self.sessionModeCombo.addItems(['kanji', 'compounds', 'all'])
         self.languageCombo.addItems(['eng','rus'])
@@ -366,6 +369,7 @@ class OptionsDialog(QFrame):
         self.options.setLoggingOn(self.checkEnableLog.isChecked())
         self.options.setFadeEffectOn(self.checkEnableFade.isChecked())
         self.options.setBackgroundOn(self.checkItemsBackground.isChecked())
+        self.options.setPlastique(self.checkPlastiqueTheme.isChecked())
         ### session ###
         self.options.setRepetitionInterval(self.intervalDial.value())
         self.options.setCountdownInterval(self.countdownDial.value())

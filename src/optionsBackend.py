@@ -49,7 +49,8 @@ class Options:
                    'log'        : False,    #enable errors logging
                    'sound'      : False,    #enable sound
                    'fade'       : True,     #enable fade effect
-                   'background' : False,     #draw item color in background
+                   'background' : False,    #draw item color in background
+                   'plastique'  : False,    #use plastique theme
                    }),
                  ('Session',                #session parameters
                   {'size'       : 300,      #number of items in session
@@ -146,6 +147,9 @@ class Options:
     def isFadeEffectOn(self):
         return self.CONFIG.get('Runtime', 'fade')
     
+    def isPlastique(self):
+        return self.CONFIG.get('Runtime', 'plastique')
+    
     def setAlwaysOnTop(self, flag):
         self.CONFIG.set('Runtime', 'ontop', flag)
         
@@ -163,6 +167,9 @@ class Options:
     
     def setBackgroundOn(self, flag):
         self.CONFIG.set('Runtime', 'background', flag)
+        
+    def setPlastique(self, flag):
+        self.CONFIG.set('Runtime', 'plastique', flag)
     
     ### dictionary ###
     def getLookupLang(self):

@@ -11,14 +11,15 @@ from jisho import JishoClient
 from mParser.mecabTool import MecabTool
 from jcconv import kata2hira
 from leitner import Leitner
+from constants import modes
 
 class srsScheduler:
 
     #NB: only kanji mode is working properly
 
     def __init__(self):
-        print '!'
         self.db = DBoMagic()
+        self.mode = modes.kanji
         
     def activeDB(self):
         return self.db
@@ -28,11 +29,8 @@ class srsScheduler:
         self.currentExample = u''
         self.db.setupDB()
         
-        #FOR TEST DB INITIALIZATION ONLY
-        ###self.db.addItemsToDbJlpt(3)            don't forget to comment this!!
-        ######################
-        
         self.db.initializeCurrentSession(mode, sessionSize)
+        self.mode = mode
         
     def endCurrentSession(self):
         self.db.endCurrentSesion()
