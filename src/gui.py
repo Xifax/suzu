@@ -711,6 +711,7 @@ class Quiz(QFrame):
         self.trayMenu.addAction(QAction('&Quiz me now!', self, shortcut="Q", triggered=self.showQuiz))
         self.pauseAction = QAction('&Start quiz!', self, shortcut="S", triggered=self.pauseQuiz)
         self.trayMenu.addAction(self.pauseAction)
+        self.trayMenu.addSeparator()
         self.trayMenu.addAction(QAction('Quick &dictionary', self, shortcut="D", triggered=self.showQuickDict))
         self.trayMenu.addAction(QAction('Global &statistics', self, shortcut="S", triggered=self.showGlobalStatistics))
         self.trayMenu.addAction(QAction('&Options', self, shortcut="O", triggered=self.showOptions))
@@ -956,6 +957,6 @@ if __name__ == '__main__':
     
     about = About()
     options = OptionsDialog(quiz.srs.db, quiz.options)
-    qdict = QuickDictionary(quiz.jmdict, quiz.srs.db)
+    qdict = QuickDictionary(quiz.jmdict, quiz.edict, quiz.srs.db)
     
     sys.exit(app.exec_())

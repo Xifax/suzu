@@ -1,4 +1,4 @@
-#Sun Mar 06 01:58:44 MSK 2011
+#Sun Mar 06 20:08:27 MSK 2011
 eclipse.preferences.version=1
 encoding//src/about.py=utf-8
 encoding//src/constants.py=utf-8
@@ -16,3 +16,4 @@ encoding//src/optionsBackend.py=utf-8
 encoding//src/rtimer.py=utf-8
 encoding//src/srsManager.py=utf-8
 encoding//src/stats.py=utf-8
+encoding//src/utils.py=utf-8

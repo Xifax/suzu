@@ -11,7 +11,7 @@ from jisho import JishoClient
 from mParser.mecabTool import MecabTool
 from jcconv import kata2hira
 from leitner import Leitner
-from constants import modes
+from constants import modes, modeByKey
 
 class srsScheduler:
 
@@ -29,7 +29,7 @@ class srsScheduler:
         self.currentExample = u''
         self.db.setupDB()
         
-        self.db.initializeCurrentSession(mode, sessionSize)
+        self.db.initializeCurrentSession(modeByKey(mode), sessionSize)
         self.mode = mode
         
     def endCurrentSession(self):
@@ -57,7 +57,7 @@ class srsScheduler:
         self.currentExample = self.db.getExample(self.currentItem) 
         ## adding corresponding word to db
         #self.db.addWordToDb(self.currentItem, self.getWordFromExample())
-        self.db.addWordToDbAndLinkToExample(self.currentItem, self.getWordFromExample(), self.currentExample)   #NB: test version!
+        self.db.addWordToDbAndLinkToExample(self.currentItem, self.getWordFromExample(), self.currentExample)
         
         return self.currentExample.sentence
     

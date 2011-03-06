@@ -51,6 +51,7 @@ class Options:
                    'fade'       : True,     #enable fade effect
                    'background' : False,    #draw item color in background
                    'plastique'  : False,    #use plastique theme
+                   'preload'    : False,    #preload jmdict
                    }),
                  ('Session',                #session parameters
                   {'size'       : 300,      #number of items in session
@@ -150,6 +151,9 @@ class Options:
     def isPlastique(self):
         return self.CONFIG.get('Runtime', 'plastique')
     
+    def isPreloading(self):
+        return self.CONFIG.get('Runtime', 'preload')
+    
     def setAlwaysOnTop(self, flag):
         self.CONFIG.set('Runtime', 'ontop', flag)
         
@@ -170,6 +174,9 @@ class Options:
         
     def setPlastique(self, flag):
         self.CONFIG.set('Runtime', 'plastique', flag)
+        
+    def setPreloading(self, flag):
+        self.CONFIG.set('Runtime', 'preload', flag)
     
     ### dictionary ###
     def getLookupLang(self):

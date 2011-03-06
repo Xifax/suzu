@@ -18,13 +18,22 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.sqlsoup import SqlSoup
 from sqlalchemy.orm.exc import NoResultFound
 import os.path
-
-#import time
-
+import pickle
+import re
 
 def removeDuplicates(list):
     set = {}
     return [set.setdefault(e,e) for e in list if e not in set]
+
+class redict(dict):
+    def __init__(self, d):
+        dict.__init__(self, d)
+
+    def __getitem__(self, regex):
+        r = re.compile(regex)
+        mkeys = filter(r.match, self.keys())
+        for i in mkeys:
+                yield dict.__getitem__(self, i)
 
 class Session(Entity):
     date = Field(TIMESTAMP)
@@ -460,7 +469,82 @@ class DictionaryLookup:
        
     def __init__(self):
         self.db = SqlSoup(SQLITE + PATH_TO_RES + JMDICT)
+        self.joinTables()
+        self.dictionary = {}
+        
+    def joinTables(self):
+        '''Join tables on init for better perfomance'''
+        join_word = self.db.join(self.db.k_ele, self.db.r_ele, self.db.k_ele.fk==self.db.r_ele.fk, isouter=True)
+        join_sense = self.db.join(join_word, self.db.sense, join_word.fk==self.db.sense.fk )
+        join_sense_labels = self.db.with_labels(join_sense)
+        
+        self.join_gloss = self.db.join(join_sense_labels, self.db.gloss, join_sense_labels.sense_id==self.db.gloss.fk)
+        
+    #TODO: add (optional) jmdict dump to dictionary (maybe faster?)
+    
+    def dumpJmdictToFile(self):
+        '''VERY time consuming'''
+                
+        dictionary = {}
+        everything = self.join_gloss.all()
+        print len(everything)
+        for item in everything:
+            if item.lang == 'eng' or item.lang == 'rus':
+                if dictionary.has_key(item.r_ele_value):
+                    dictionary[item.r_ele_value].append({'word' : item.k_ele_value, 'sense' : item.value})
+                else:
+                    dictionary[item.r_ele_value] = [{'word' : item.k_ele_value, 'sense' : item.value}]    #what about r_ele_nokanji?
+            
+        dump = open(PATH_TO_RES + JMDICT_DUMP, 'w')
+        pickle.dump(dictionary, dump)
+        
+        del dictionary
+        del everything
+        dump.close()
+        
+    def dumpJmdictToFileWithRegex(self):
+        '''VERY time consuming'''
+                
+        dictionary = redict({})     #NB: regex dictionary, [] is an generator object (iterator)
+        everything = self.join_gloss.all()
+        print len(everything)
+        for item in everything:
+            if item.lang == 'eng' or item.lang == 'rus':
+                if dictionary.has_key(item.r_ele_value):
+                    #dictionary[item.r_ele_value] = dictionary.get(item.r_ele_value).append({'word' : item.k_ele_value, 'sense' : item.value})
+                    dictionary.get(item.r_ele_value).append({'word' : item.k_ele_value, 'sense' : item.value})
+                else:
+                    dictionary[item.r_ele_value] = [{'word' : item.k_ele_value, 'sense' : item.value}]    #what about r_ele_nokanji?
+            
+        dump = open(PATH_TO_RES + JMDICT_DUMP + '_rx', 'w')
+        pickle.dump(dictionary, dump)
+        
+        del dictionary
+        del everything
+        dump.close()
+        
+    def loadJmdictFromDump(self):
+        dump = open(PATH_TO_RES + JMDICT_DUMP, 'r')
+        self.dictionary = pickle.load(dump)
+        dump.close()
            
+    def loadJmdictFromDumpRegex(self):
+        dump = open(PATH_TO_RES + JMDICT_DUMP + '_rx', 'r')
+        self.dictionaryR = pickle.load(dump)
+        dump.close()
+        
+    def lookupAllByReading(self, kana, lang='eng'):
+        '''Returns word -> reading -> senses'''
+        words = self.lookupItemByReading(kana)      #TODO: change to join and specific search by reading
+        results = {}
+        for word in words:
+            #results[word] = self.lookupItemTranslationJoin(word, lang)
+            #results[word] = { 'sense' : self.lookupItemTranslationJoin(word, lang), 'kana' : self.lookupReadingsByItem(word) }  # returns everything, isn't quite right
+            results[word] = { 'sense' : self.lookupItemTranslationJoin(word, lang) }  # returns everything, isn't quite right
+            #TODO: return sense by kana reading!
+            
+        return results
+    
     def looseLookupByReadingJoin(self, item, pre=False, post=True):
         '''Quite slow, but faster than without join'''
         if pre:
@@ -477,23 +561,23 @@ class DictionaryLookup:
             for item in lookup:
                 result.append(item.k_ele_value)
         else:
-            lookup = table.filter(table.r_ele_value.like(hira2kata(item))).all()    #TODO: it seems to be not working properly 
+            lookup = table.filter(table.r_ele_value.like(hira2kata(query))).all()    #TODO: it seems to be not working properly (POR QUA?!)
             for item in lookup:
                 result.append(item.k_ele_value)
             
         return removeDuplicates(result)
     
     def lookupItemByReading(self, item):
-        #add interconvert: search both hiragana and katakana variants
+        '''Looks up words (kanji/kana) by katakana and hiraga reading''' 
         lookup = self.db.r_ele.filter(self.db.r_ele.value==item).all()
         
         results = []
-        if len(lookup) > 0:         #TODO: remove all those check up's - not needed
+        if len(lookup) > 0:
             for item in lookup:
                 words = self.db.k_ele.filter(self.db.k_ele.fk==item.fk).all()
                 for word in words:
                     results.append(word.value)
-        else: #TODO: check perfomance
+        else:
             lookup = self.db.r_ele.filter(self.db.r_ele.value==hira2kata(item)).all()
             for item in lookup:
                 words = self.db.r_ele.filter(self.db.r_ele.fk==item.fk).all()
@@ -504,6 +588,7 @@ class DictionaryLookup:
     #TODO: add universal method to get readings, translations altogether 
     
     def lookupReadingsByItem(self, item):
+        '''Search kana reading by item itself'''
         lookup = self.db.k_ele.filter(self.db.k_ele.value==item).all()
         
         results = []
@@ -513,22 +598,11 @@ class DictionaryLookup:
                 if len(readings) > 0:
                     for reading in readings:
                         results.append(reading.value)
-        '''                
-        else: 
-            lookup = self.db.k_ele.filter(self.db.k_ele.value==hira2kata(item)).all()
-            if len(lookup) > 0:
-                for item in lookup:
-                    readings = self.db.r_ele.filter(self.db.r_ele.fk==item.fk).all()
-                    if len(readings) > 0:
-                        for reading in readings:
-                            results.append(reading.value)
-
-        '''
         return removeDuplicates(results)
 
     #TODO: add implementation searching both words and readings
     def lookupItemTranslationJoin(self, item, lang='eng'):
-        '''Much faster than without join'''
+        '''Much faster than without join - looks up translation by word (not reading)'''
         join_sense = self.db.join(self.db.k_ele, self.db.sense, self.db.k_ele.fk==self.db.sense.fk, isouter=True)
         join_sense_labels = self.db.with_labels(join_sense)
         join_gloss = self.db.join(join_sense_labels, self.db.gloss, join_sense_labels.sense_id==self.db.gloss.fk)
@@ -542,7 +616,7 @@ class DictionaryLookup:
         return removeDuplicates(result)
     
     def lookupTranslationByReadingJoin(self, item, lang='eng'):
-        '''Much faster than without join'''
+        '''Much faster than without join - looks up translation by reading'''
         join_sense = self.db.join(self.db.r_ele, self.db.sense, self.db.r_ele.fk==self.db.sense.fk, isouter=True)
         join_sense_labels = self.db.with_labels(join_sense)
         join_gloss = self.db.join(join_sense_labels, self.db.gloss, join_sense_labels.sense_id==self.db.gloss.fk)
@@ -555,6 +629,52 @@ class DictionaryLookup:
                 
         return removeDuplicates(result)
     
+    def lookupTranslationByReadingAndWordJoin(self, kana, word, lang='eng'):
+        '''Lookup translation for word with specified reading'''
+        join_word = self.db.join(self.db.k_ele, self.db.r_ele, self.db.k_ele.fk==self.db.r_ele.fk, isouter=True)
+        #join_word_labels = self.db.with_labels(join_word)
+
+        join_sense = self.db.join(join_word, self.db.sense, join_word.fk==self.db.sense.fk )
+        join_sense_labels = self.db.with_labels(join_sense)
+        join_gloss = self.db.join(join_sense_labels, self.db.gloss, join_sense_labels.sense_id==self.db.gloss.fk)
+        
+        lookup = join_gloss.filter(and_(join_gloss.r_ele_value==kana, join_gloss.k_ele_value==word)).all()
+
+        result = []
+        if len(lookup) > 0:
+            for item in lookup:
+                if item.lang == lang: result.append(item.value)
+                
+        return removeDuplicates(result)
+    
+    def lookupTranslationByReadingReturnAll(self, kana, lang='eng'):
+        '''Lookup translation for word with specified reading'''
+        
+        '''
+        join_word = self.db.join(self.db.k_ele, self.db.r_ele, self.db.k_ele.fk==self.db.r_ele.fk, isouter=True)
+        #join_word_labels = self.db.with_labels(join_word)
+
+        join_sense = self.db.join(join_word, self.db.sense, join_word.fk==self.db.sense.fk )
+        join_sense_labels = self.db.with_labels(join_sense)
+        join_gloss = self.db.join(join_sense_labels, self.db.gloss, join_sense_labels.sense_id==self.db.gloss.fk)
+        '''
+        
+        #lookup = join_gloss.filter(and_(join_gloss.r_ele_value==kana, join_gloss.k_ele_value==word)).all()
+        
+        #lookup = join_gloss.filter_by(r_ele_value=kana).all()
+        lookup = self.join_gloss.filter_by(r_ele_value=kana).all()
+
+        result = []
+        #result = {}
+        for item in lookup:
+            if item.lang == lang: 
+                #result.append(item.value)
+                #result[kana] = { 'word' : item.k_ele_value, 'translation' : item.value }
+                result.append({ 'word' : item.k_ele_value, 'sense' : item.value, 'kana' : item.r_ele_value }) #or dictionary with word as a key?
+                
+        #return removeDuplicates(result)
+        return result
+    
     def lookupItemByReadingJoin(self, item):
         '''Sometimes, a wee bit faster than without join'''
         join = self.db.join(self.db.k_ele, self.db.r_ele, self.db.k_ele.fk==self.db.r_ele.fk, isouter=True)
@@ -566,25 +686,42 @@ class DictionaryLookup:
                 result.append(item.k_ele_value)
             
         return removeDuplicates(result)
-    
-    '''
-    def lookupItemTranslation(self, item, lang='eng'):
-        lookup = self.db.k_ele.filter(self.db.k_ele.value==item).all()
-        
-        results = []
-        if len(lookup) > 0:
-            for item in lookup:
-                senses = self.db.sense.filter(self.db.sense.fk==item.fk).all()
-                if len(senses) > 0:
-                    for sense in senses:
-                        translations = self.db.gloss.filter(and_(self.db.gloss.fk==sense.id, self.db.gloss.lang==lang)).all()
-                        if len(translations) > 0:
-                            for trans in translations:
-                                results.append(trans.value)
-        return self.removeDuplicates(results)
-    '''
 
-#dlookup = DictionaryLookup()
+#===============================================================================
+# dlookup = DictionaryLookup()
+# #dlookup.joinTables()
+# start = datetime.now()
+# #dlookup.dumpJmdictToFile()
+# #dlookup.dumpJmdictToFileWithRegex()
+# dlookup.loadJmdictFromDump()
+# dlookup.loadJmdictFromDumpRegex()
+# print datetime.now() - start
+# start = datetime.now()
+# test_list = [u'かれ',u'そら',u'くれぐれも']
+# #res = dlookup.dictionary[u'かんじ']
+# #res = dlookup.dictionary.get(u'かんじ')
+# #for item in dlookup.dictionary[u'かんじ']:
+# #    print item
+# #for list in dlookup.dictionary[u'か.*']:
+# for list in dlookup.dictionaryR[u'か']:
+#    for item in list:
+#        print item['word'], item['sense']
+# #print ' '.join(res)
+# print datetime.now() - start
+# 
+# start = datetime.now()
+# #for item in dlookup.dictionary[u'か']:
+#    #print item['word'], item['sense']
+# res =  item in dlookup.dictionary[u'か']
+# print datetime.now() - start
+#===============================================================================
+
+#===============================================================================
+# for i in dict[r'.*!']:
+#     
+# for i in dict[r't.*']:
+#===============================================================================
+    
 '''
 db = DBoMagic()
 db.setupDB()
@@ -610,11 +747,29 @@ res = dlookup.lookupItemByReading(u'あそんだ')
 print ' '.join(res)
 '''
 
-#start = datetime.now()
+'''
+start = datetime.now()
 #res = dlookup.lookupItemTranslationJoin(u'彼')
 #res = dlookup.lookupItemByReading(u'かんじ')
+#res = dlookup.looseLookupByReadingJoin(u'こんせんと')
+#res = dlookup.lookupAllByReading(u'かんじ')
+#res = dlookup.lookupTranslationByReadingReturnAll(u'か')
+res = dlookup.lookupTranslationByReadingReturnAll(u'か')
+#res = dlookup.lookupTranslationByReadingJoin(u'そら')
+#kana = u'そら'
+#word = dlookup.lookupItemByReading(kana)
+#res = dlookup.lookupTranslationByReadingAndWordJoin(kana, word[0])
+#res = dlookup.lookupTranslationByReadingAndWordJoin(kana, kana)
+#res = dlookup.lookupItemTranslationJoin(u'そら')
+'''
+'''
+res = dlookup.lookupAllByReading(u'そら')
 #print ' '.join(res)
+for item in res:
+    print item, ' '.join(res[item]['sense']), ' '.join(res[item]['kana'])
+    '''
 #print datetime.now() - start
+
 '''
 start = datetime.now()
 res = dlookup.lookupItemTranslation(u'彼')
@@ -639,6 +794,8 @@ start = datetime.now()
 res = dlookup.lookupReadingsByItem(u'空')
 print datetime.now() - start
 print ' '.join(res)
+'''
+'''
 res = dlookup.lookupReadingsByItem(u'繋がる')
 print ' '.join(res)
 '''
