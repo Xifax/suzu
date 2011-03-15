@@ -507,7 +507,8 @@ class OptionsDialog(QFrame):
         
         self.items.backgroundFlag = self.options.isBackgroundOn()
         
-        #self.scrollArea = QScrollArea()
+        self.items.scrollArea = QScrollArea(self.items)
+        self.items.groupItems = QGroupBox()
         #TODO: implement using group box: QScrollArea <- QGroupBox <- a layout () <- widgets ( created with the group box as parent and added to the layout )
                 
         studyItems = self.db.getAllItemsInFull()
@@ -593,7 +594,10 @@ class OptionsDialog(QFrame):
         #self.items.layout.addLayout(self.items.infoLayout, i + 2, 0, 1, 8)
         self.items.layout.addLayout(self.items.infoLayout, i + 2, self.items.layout.columnCount()/2, 1, 8)
         
-        #self.scrollArea.setLayout(self.items.layout)
+        #self.items.scrollArea.setLayout(self.items.layout)
+        
+        #self.groupItems.setLayout(self.items.layout)
+        #self.scrollArea.setWidget(self.groupItems)
         
         self.items.setLayout(self.items.layout)
         self.items.show()

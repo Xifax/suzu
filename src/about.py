@@ -118,12 +118,11 @@ class About(QFrame):
         #self.logo_scene.addItem(QGraphicsPixmapItem(self.logo_1st))
         #self.logo.setScene(self.logo_scene)
 
-'''
-app = QApplication(sys.argv)
-app.setStyle('plastique')
 
-about = About()
-about.show()
-
-sys.exit(app.exec_())
-'''
+#app = QApplication(sys.argv)
+#app.setStyle('plastique')
+#
+#about = About()
+#about.show()
+#
+#sys.exit(app.exec_())

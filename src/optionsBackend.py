@@ -15,19 +15,19 @@ class Options:
         self.APP_NAME = 'suzu'
         
         #default settings    #TODO: group fonts settings
-        self.OPTIONS = [('SentenceFont',           #sentences font
+        self.OPTIONS = [('SentenceFont',    #sentences font
                 {'name' : u'ヒラギノ丸ゴ Pro W4',
                  'size' : 18,
                  }),
-                 ('QuizFont',                  #quiz answers font
+                 ('QuizFont',               #quiz answers font
                   {'name' : u'FOT-筑紫明朝 Pro LB',
                    'size' : 12,
                    }),
-                  ('MessageFont',                  #messages font
+                  ('MessageFont',           #messages font
                   {'name' : u'Cambria',
                    'size' : 12,
                    }),
-                  ('InfoFont',                  #messages font
+                  ('InfoFont',              #messages font
                   {'name' : u'ヒラギノ明朝 Pro W3',
                    'size' : 12,
                    }),
@@ -59,6 +59,7 @@ class Options:
                    }),
                  ('Dict',                   #dictionary options
                   {'lang'       : 'eng',    #translation language
+                   'default'    : 'jmdict', #default dictionary
                    }),
                ]
         
@@ -66,16 +67,20 @@ class Options:
         self.CONFIG = UserConfig(self.APP_NAME, self.OPTIONS, version=__version__)
     ### fonts ###
     def getSentenceFont(self):
-        return u'' + self.CONFIG.get('SentenceFont', 'name')
+        #return u'' + self.CONFIG.get('SentenceFont', 'name')    #NB: if launched from windows console (cmd) here will be UnicodeDecodeError
+        return unicode(self.CONFIG.get('SentenceFont', 'name'), 'utf-8')    #NB: it works even in windows!
     
     def getQuizFont(self):
-        return u'' + self.CONFIG.get('QuizFont', 'name')
+        #return u'' + self.CONFIG.get('QuizFont', 'name')
+        return unicode(self.CONFIG.get('QuizFont', 'name'), 'utf-8')
     
     def getMessageFont(self):
-        return u'' + self.CONFIG.get('MessageFont', 'name')
+        #return u'' + self.CONFIG.get('MessageFont', 'name')
+        return unicode(self.CONFIG.get('MessageFont', 'name'), 'utf-8')
     
     def getInfoFont(self):
-        return u'' + self.CONFIG.get('InfoFont', 'name')
+        #return u'' + self.CONFIG.get('InfoFont', 'name')
+        return unicode(self.CONFIG.get('InfoFont', 'name'), 'utf-8')
     
     def getSentenceFontSize(self):
         return self.CONFIG.get('SentenceFont', 'size')
@@ -185,46 +190,8 @@ class Options:
     def setLookupLang(self, lang):
         self.CONFIG.set('Dict', 'lang', lang)
         
-'''
-from PySide.QtCore import *
-from PySide.QtGui import *
-import sys
-
-class Test(QDialog):
-     
-    def __init__(self, parent=None):
-        super(Test, self).__init__(parent)
-       
-        self.label = QLabel(u'日本語例文なので～')
-        self.label1 = QLabel(u'日本語例文なので～')
-        self.opt = Options()
-        font = self.opt.getSentenceFont()
-        fontU = u''
-        #fontU = font.encode('string_escape')
-        fontU = fontU + font
-        self.label.setFont(QFont(self.opt.getSentenceFont(),18))
-        #self.label.setFont(QFont(fontU,18))
-        #self.label.setFont(QFont(u'' + font,18))
-        self.label1.setFont(QFont(u'ヒラギノ丸ゴ Pro W4',18))
-        
-        
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.label)
-        self.layout.addWidget(self.label1)
-        
-        self.setLayout(self.layout)
-        
-if __name__ == '__main__':
-
-    app = QApplication(sys.argv)
-    app.setStyle('plastique')
+    def getLookupDict(self):
+        return self.CONFIG.get('Dict', 'default')
     
-    #opt = Options()
-    #font = opt.getSentenceFont()
-    #print font
-    
-    test = Test()
-    test.show()
-    
-    sys.exit(app.exec_())
-'''
+    def setLookupDict(self, dict):
+        self.CONFIG.set('Dict', 'default', dict)

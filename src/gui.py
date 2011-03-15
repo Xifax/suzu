@@ -38,7 +38,8 @@ from constants import *
 from about import About
 from guiOpt import OptionsDialog
 from guiQuick import QuickDictionary
-from db import DictionaryLookup
+#from db import DictionaryLookup
+from db import *
 from guiUtil import roundCorners, unfillLayout
 
 from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent,QByteArray,QThread,SIGNAL
@@ -48,7 +49,7 @@ from PySide.QtGui import *  #TODO: fix to parsimonious imports
 from cjktools.resources.radkdict import RadkDict
 from pkg_resources import resource_filename #por qua thou err like t'ese?
 from cjktools.resources import auto_format
-#from cjktools.resources import kanjidic
+from cjktools.resources import kanjidic
 from cjktools import scripts
 
 import pythoncom, pyHook
@@ -440,7 +441,7 @@ class Quiz(QFrame):
         self.rdk = RadkDict()
         edict_file = resource_filename('cjktools_data', 'dict/je_edict')
         self.edict = auto_format.load_dictionary(edict_file)
-        #self.kjd = kanjidic.Kanjidic()
+        self.kjd = kanjidic.Kanjidic()
         
         """Initializing srs system"""
         self.trayIcon.showMessage('Loading...', 'Initializing databases', QSystemTrayIcon.MessageIcon.Information, 20000 )
@@ -515,8 +516,7 @@ class Quiz(QFrame):
         self.sentence.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))
         
         self.sentence.setWordWrap(True)
-        self.trayIcon.setIcon(QIcon('../res/cards.ico'))
-        #self.trayIcon.setIcon(QIcon('../res/suzu.ico'))
+        self.trayIcon.setIcon(QIcon('../res/tray/active.png'))
         
         self.status.message.setFont(QFont('Cambria', self.options.getMessageFontSize()))
         self.status.layout.setAlignment(Qt.AlignCenter)
@@ -713,7 +713,7 @@ class Quiz(QFrame):
         self.trayMenu.addAction(self.pauseAction)
         self.trayMenu.addSeparator()
         self.trayMenu.addAction(QAction('Quick &dictionary', self, shortcut="D", triggered=self.showQuickDict))
-        self.trayMenu.addAction(QAction('Global &statistics', self, shortcut="S", triggered=self.showGlobalStatistics))
+        self.trayMenu.addAction(QAction('&Global &statistics', self, shortcut="G", triggered=self.showGlobalStatistics))
         self.trayMenu.addAction(QAction('&Options', self, shortcut="O", triggered=self.showOptions))
         self.trayMenu.addAction(QAction('&About', self, shortcut="A", triggered=self.showAbout))
         self.trayMenu.addSeparator()
@@ -735,6 +735,8 @@ class Quiz(QFrame):
                                           '\nCorrect answers:\t\t' + str(self.stats.answeredCorrect) +
                                           '\nWrong answers:\t\t' + self.stats.getIncorrectAnswersCount() +
                                           '\nCorrect ratio:\t\t' + self.stats.getCorrectRatioPercent() +
+                                          #'\nQuiz total time:\t\t' + self.stats.getQuizActive() +
+                                          '\nQuiz paused time:\t\t' + self.stats.getPausedTime() +
                                           '\nTotal pondering time:\t' + self.stats.getMusingsTime() +
                                           '\nTotal post-quiz time:\t' + self.stats.getQuizTime() +
                                           '\nAverage pondering:\t' + self.stats.getAverageMusingTime() +
@@ -867,15 +869,23 @@ class Quiz(QFrame):
                 self.pauseAction.setText('&Unpause')
                 self.pauseAction.setShortcut('U')
                 self.trayIcon.setToolTip('Quiz paused!')
+                
+                self.trayIcon.setIcon(QIcon('../res/tray/inactive.png'))
+                self.stats.pauseStarted()
             elif self.pauseAction.text() == '&Start quiz!':
                 self.waitUntilNextTimeslot()
                 self.pauseAction.setText('&Pause')
                 self.trayIcon.setToolTip('Quiz in progress!')
+                
+                self.trayIcon.setIcon(QIcon('../res/tray/active.png'))
             else:
                 self.waitUntilNextTimeslot()
                 self.pauseAction.setText('&Pause')
                 self.pauseAction.setShortcut('P')
                 self.trayIcon.setToolTip('Quiz in progress!')
+                
+                self.trayIcon.setIcon(QIcon('../res/tray/active.png'))
+                self.stats.pauseEnded()
         else:
             self.showSessionMessage(u'Sorry, cannot pause while quiz in progress!')
  
@@ -953,10 +963,10 @@ if __name__ == '__main__':
     
     quiz = Quiz()
     if quiz.options.isPlastique():  app.setStyle('plastique')
-    #quiz.setWindowIcon(QIcon('../res/suzu.png'))
+    quiz.setWindowIcon(QIcon('../res/icons/suzu.png'))
     
     about = About()
     options = OptionsDialog(quiz.srs.db, quiz.options)
-    qdict = QuickDictionary(quiz.jmdict, quiz.edict, quiz.srs.db)
+    qdict = QuickDictionary(quiz.jmdict, quiz.edict, quiz.kjd, quiz.srs.db, quiz.options)
     
     sys.exit(app.exec_())

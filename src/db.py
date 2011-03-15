@@ -117,7 +117,8 @@ class DBoMagic:
             selection = Word.query.filter_by(active = True).all()
         else:
             selection = () # Kanji && Words?
-        
+            
+        self.endCurrentSesion()
         n = sessionSize
         
         shuffle(selection)
@@ -168,8 +169,17 @@ class DBoMagic:
                 session.commit()
     
     def addKanjiToDb(self, character):
-        Kanji(character = character)
-        session.commit()
+        if(len(Kanji.query.filter_by(character = character).all()) == 0):
+            Kanji(character = character, tags = u'user', next_quiz = datetime.now(), leitner_grade = Leitner.grades.None.index, active = True, 
+                                current_session = False, been_in_session = 0)
+            session.commit()
+            
+    def addWordToDbByValue(self, word):
+        if len(word) > 1:
+            if(len(Word.query.filter_by(word = word).all()) == 0):
+                Word(word = word, tags = u'user', next_quiz = datetime.now(), leitner_grade = Leitner.grades.None.index, active = True, 
+                                    current_session = False, been_in_session = 0)
+                session.commit()
         
     def addSentenceToDb(self, kanji, sentence, translation):
         Kanji.query.filter_by(character = kanji).one().example.append(Example(sentence = sentence,translation = translation))          #or get_by
@@ -466,11 +476,13 @@ class DBoMagic:
         session.execute('VACUUM')
             
 class DictionaryLookup:
-       
+    
+    #FIXME: REFACTOR, REFACTOR, friggin' REFACTOR all this mess!
     def __init__(self):
         self.db = SqlSoup(SQLITE + PATH_TO_RES + JMDICT)
-        self.joinTables()
+        #self.joinTables()   #TODO: should move somewhere (may be pre-dump routine?)
         self.dictionary = {}
+        self.loadJmdictFromDumpRegex()	#TODO: add check
         
     def joinTables(self):
         '''Join tables on init for better perfomance'''
@@ -479,21 +491,77 @@ class DictionaryLookup:
         join_sense_labels = self.db.with_labels(join_sense)
         
         self.join_gloss = self.db.join(join_sense_labels, self.db.gloss, join_sense_labels.sense_id==self.db.gloss.fk)
-        
-    #TODO: add (optional) jmdict dump to dictionary (maybe faster?)
     
-    def dumpJmdictToFile(self):
-        '''VERY time consuming'''
+    def dumpJmdictToFileMulilang(self, languages):
+        '''VERY time (and memory) consuming'''
                 
         dictionary = {}
         everything = self.join_gloss.all()
         print len(everything)
         for item in everything:
-            if item.lang == 'eng' or item.lang == 'rus':
+#            if item.lang == 'eng':
+#                if dictionary.has_key(item.r_ele_value):
+#                    dictionary[item.r_ele_value].append({'word' : item.k_ele_value, 'sense' : item.value})
+#                else:
+#                    dictionary[item.r_ele_value] = [{'word' : item.k_ele_value, 'sense' : item.value}]    #what about r_ele_nokanji?
+#            if item.lang == 'eng' or item.lang == 'rus':    #(*)
+            if item.lang in languages:
                 if dictionary.has_key(item.r_ele_value):
-                    dictionary[item.r_ele_value].append({'word' : item.k_ele_value, 'sense' : item.value})
+                    if dictionary[item.r_ele_value].has_key(item.k_ele_value):
+                        if dictionary[item.r_ele_value][item.k_ele_value].has_key(item.lang):
+                            dictionary[item.r_ele_value][item.k_ele_value][item.lang].append(item.value)
+                        else:
+                            dictionary[item.r_ele_value][item.k_ele_value][item.lang] = [item.value]
+                    else:
+                            dictionary[item.r_ele_value][item.k_ele_value] = { item.lang : [item.value] } 
+
+    #                if item.lang == 'eng':
+    #                    dictionary[item.r_ele_value]['sense']['eng'].append(item.value)
+    #                if item.lang == 'rus':
+    #                    dictionary[item.r_ele_value]['sense']['rus'].append(item.value)
+                    
+#                    dictionary[item.r_ele_value][item.lang].append(item.value)         #without (*) check - will copy everythig
+#                    dictionary[item.r_ele_value]['word'] = item.k_ele_value
+
                 else:
-                    dictionary[item.r_ele_value] = [{'word' : item.k_ele_value, 'sense' : item.value}]    #what about r_ele_nokanji?
+                    #dictionary[item.r_ele_value] = [{'word' : item.k_ele_value, item.lang : [item.value] }] 
+                    dictionary[item.r_ele_value] = { item.k_ele_value : { item.lang : [item.value] } }
+
+            #===================================================================
+            # if item.lang == 'eng':
+            #    if dictionary.has_key(item.r_ele_value):
+            #        dictionary[item.r_ele_value]['word'] = item.k_ele_value
+            #        dictionary[item.r_ele_value]['sense']['eng'].append(item.value)
+            #    else:
+            #        dictionary[item.r_ele_value] = [{ 'word' : item.k_ele_value, 'eng' : [item.value] }] 
+            # elif item.lang == 'rus':
+            #    if dictionary.has_key(item.r_ele_value):
+            #        dictionary[item.r_ele_value]['word'] = item.k_ele_value
+            #        dictionary[item.r_ele_value]['sense']['rus'].append(item.value)
+            #    else:
+            #        dictionary[item.r_ele_value] = [{'word' : item.k_ele_value, 'rus' : [item.value] }] 
+            #===================================================================
+
+            #NB:[{ 'word' : ..., 'sense' : { 'rus' : [], 'eng' : [] } ]
+            #or
+            #NB: [{ 'word' : ..., 'rus' : [], 'eng' : [] } <--- the best?
+            #or (even better)
+            #additionally, check if 'word' is the same ~ append to rus/eng/... senses, not to item by key;
+            #then, not dict[key] = [{ ... }] but dict[key] = { ... [], [] }
+            #(probably won't work, reading : word is not 1:1)
+                    
+#            if item.lang == 'eng':
+#                if dictionary.has_key(item.r_ele_value):
+#                    dictionary[item.r_ele_value]['word'] = item.k_ele_value
+#                    dictionary[item.r_ele_value]['sense']['eng'] = item.value
+#                else:
+#                    dictionary[item.r_ele_value] = [{'word' : item.k_ele_value, 'sense' : {'eng' : item.value}}] 
+#            elif item.lang == 'rus':
+#                if dictionary.has_key(item.r_ele_value):
+#                    dictionary[item.r_ele_value]['word'] = item.k_ele_value
+#                    dictionary[item.r_ele_value]['sense']['rus'] = item.value
+#                else:
+#                    dictionary[item.r_ele_value] = [{'word' : item.k_ele_value, 'sense' : {'rus' : item.value}}] 
             
         dump = open(PATH_TO_RES + JMDICT_DUMP, 'w')
         pickle.dump(dictionary, dump)
@@ -501,20 +569,62 @@ class DictionaryLookup:
         del dictionary
         del everything
         dump.close()
+    
+    def dumpJmdictToFile(self, lang='eng'):
         
-    def dumpJmdictToFileWithRegex(self):
+        dictionary = {}
+        everything = self.join_gloss.all()
+        print len(everything)
+        for item in everything:
+            if item.lang == lang:
+                #NB:[ { 'word' : .., 'sense' : [..] } ] ~ dictionary composed of list of dictionaries
+                #===============================================================
+                # if dictionary.has_key(item.r_ele_value):
+                #    dictionary[item.r_ele_value].append({'word' : item.k_ele_value, 'sense' : item.value})
+                # else:
+                #    dictionary[item.r_ele_value] = [{'word' : item.k_ele_value, 'sense' : item.value}]
+                #===============================================================
+                
+                #NB: { word : [ senses ] } ~ dictionary of dictionaries
+                if dictionary.has_key(item.r_ele_value):
+                    if dictionary[item.r_ele_value].has_key(item.k_ele_value):
+                        dictionary[item.r_ele_value][item.k_ele_value].append(item.value)
+                    else:
+                        dictionary[item.r_ele_value][item.k_ele_value] = [item.value]
+                else:
+                    dictionary[item.r_ele_value] = { item.k_ele_value : [item.value]  }
+                    
+        dump = open(PATH_TO_RES + JMDICT_DUMP, 'w')
+        pickle.dump(dictionary, dump)
+        
+        del dictionary
+        del everything
+        dump.close()
+        
+    def dumpJmdictToFileWithRegex(self, lang='eng'):
         '''VERY time consuming'''
                 
         dictionary = redict({})     #NB: regex dictionary, [] is an generator object (iterator)
         everything = self.join_gloss.all()
         print len(everything)
         for item in everything:
-            if item.lang == 'eng' or item.lang == 'rus':
+            #NB:[ { 'word' : .., 'sense' : [..] } ] ~ dictionary composed of list of dictionaries
+            #===================================================================
+            #    if dictionary.has_key(item.r_ele_value):
+            #        dictionary.get(item.r_ele_value).append({'word' : item.k_ele_value, 'sense' : item.value})
+            #    else:
+            #        dictionary[item.r_ele_value] = [{'word' : item.k_ele_value, 'sense' : item.value}]
+            #===================================================================
+            
+            #NB: { word : [ senses ] } ~ dictionary of dictionaries
+            if item.lang == lang:
                 if dictionary.has_key(item.r_ele_value):
-                    #dictionary[item.r_ele_value] = dictionary.get(item.r_ele_value).append({'word' : item.k_ele_value, 'sense' : item.value})
-                    dictionary.get(item.r_ele_value).append({'word' : item.k_ele_value, 'sense' : item.value})
+                    if dictionary.get(item.r_ele_value).has_key(item.k_ele_value):
+                        dictionary.get(item.r_ele_value).get(item.k_ele_value).append(item.value)
+                    else:
+                        dictionary.get(item.r_ele_value)[item.k_ele_value] = [item.value]
                 else:
-                    dictionary[item.r_ele_value] = [{'word' : item.k_ele_value, 'sense' : item.value}]    #what about r_ele_nokanji?
+                    dictionary[item.r_ele_value] = { item.k_ele_value : [item.value], 'kana' : item.r_ele_value }     
             
         dump = open(PATH_TO_RES + JMDICT_DUMP + '_rx', 'w')
         pickle.dump(dictionary, dump)
@@ -687,39 +797,47 @@ class DictionaryLookup:
             
         return removeDuplicates(result)
 
-#===============================================================================
-# dlookup = DictionaryLookup()
-# #dlookup.joinTables()
-# start = datetime.now()
-# #dlookup.dumpJmdictToFile()
-# #dlookup.dumpJmdictToFileWithRegex()
-# dlookup.loadJmdictFromDump()
-# dlookup.loadJmdictFromDumpRegex()
-# print datetime.now() - start
-# start = datetime.now()
-# test_list = [u'かれ',u'そら',u'くれぐれも']
-# #res = dlookup.dictionary[u'かんじ']
-# #res = dlookup.dictionary.get(u'かんじ')
-# #for item in dlookup.dictionary[u'かんじ']:
-# #    print item
-# #for list in dlookup.dictionary[u'か.*']:
-# for list in dlookup.dictionaryR[u'か']:
-#    for item in list:
-#        print item['word'], item['sense']
-# #print ' '.join(res)
-# print datetime.now() - start
-# 
-# start = datetime.now()
-# #for item in dlookup.dictionary[u'か']:
-#    #print item['word'], item['sense']
-# res =  item in dlookup.dictionary[u'か']
-# print datetime.now() - start
-#===============================================================================
+#dlookup = DictionaryLookup()
+##dlookup.joinTables()
+#start = datetime.now()
+##dlookup.dumpJmdictToFileMulilang(dumpJmdictToFile(['eng','rus'])
+##dlookup.dumpJmdictToFile()
+#dlookup.dumpJmdictToFileWithRegex()
+##dlookup.loadJmdictFromDump()
+##dlookup.loadJmdictFromDumpRegex()
+#print datetime.now() - start
+##start = datetime.now()
+##test_list = [u'かれ',u'そら',u'くれぐれも', u'か']
+##res = dlookup.dictionary[u'かんじ']
+##res = dlookup.dictionary.get(u'かんじ')
+##for item in dlookup.dictionary[u'かんじ']:
+##    print item
+##for list in dlookup.dictionary[u'か.*']:
+#
+##for dc in dlookup.dictionaryR[u'か.*']:
+##for dc in dlookup.dictionaryR[u'か.*']:
+##    for key in dc.keys():
+##        print key, ' '.join(dc[key])
+##for list in dlookup.dictionaryR[u'か']:
+##   for item in list:
+##       print item['word'], item['sense']
+##print ' '.join(res)
+#print datetime.now() - start
+#
+#start = datetime.now()
+#for item in dlookup.dictionary[u'か']:
+   #print item['word'], item['sense']
+#res =  item in dlookup.dictionary[u'か']
+#print datetime.now() - start
 
 #===============================================================================
 # for i in dict[r'.*!']:
 #     
 # for i in dict[r't.*']:
+#
+# for i in dict[r't$']:	<- exact 't'
+#
+# for i in dict[r'^t']:
 #===============================================================================
     
 '''
@@ -808,4 +926,4 @@ print ' '.join(res)
 print ' '.join(res)
 print datetime.now() - start
 '''
-print 'ok'
+#print 'ok'
