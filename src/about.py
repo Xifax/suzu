@@ -82,7 +82,8 @@ class About(QFrame):
         
     def initializeComposition(self):
         
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        #self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint)
         self.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         
         self.setStyleSheet("QWidget { background-color: rgb(255, 255,255); }")

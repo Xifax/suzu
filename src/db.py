@@ -84,7 +84,32 @@ class Example(Entity):
     # relations
     kanji = ManyToMany('Kanji')
     word = ManyToMany('Word') #is it correct?
+    
+    
+class DBBackgroundUpdater:
+    def __init__(self):
+        self.metadata = metadata
+        self.metadata.bind = SQLITE + PATH_TO_RES + DBNAME
+        setup_all()
+        
+    def addExamples(self, item, examples):
+        '''Item is either kanji or word'''
+        
+        if item is not None:
+            for example in examples:
+                item.example.append(Example(sentence = example,translation = examples[example]))
+            session.commit()
+    
+    def getSomeItem(self):
+#        kanji = Kanji.query.filter_by(current_session = True).order_by(asc(Kanji.next_quiz)).first()
+#        if len(kanji.example) == 0:
+#            return kanji
 
+        items = Kanji.query.filter_by(current_session = True).order_by(asc(Kanji.next_quiz)).all()
+        for kanji in items:
+            if len(kanji.example) == 0:
+                return kanji
+        
 class DBoMagic:
     
     def __init__(self):

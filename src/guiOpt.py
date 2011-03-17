@@ -50,7 +50,7 @@ class OptionsDialog(QFrame):
         self.db = db
         self.options = options
         self.dbItems = self.db.countTotalItemsInDb()
-        
+    
         # status info
         self.status = QFrame()
         self.status.info = QLabel(u'')
@@ -385,6 +385,7 @@ class OptionsDialog(QFrame):
         self.showInfo(u'All options saved!')
     
     def resetOptions(self):
+        #TODO: ...
         print 'reset'
         
     def discardOptions(self):
@@ -507,8 +508,8 @@ class OptionsDialog(QFrame):
         
         self.items.backgroundFlag = self.options.isBackgroundOn()
         
-        self.items.scrollArea = QScrollArea(self.items)
-        self.items.groupItems = QGroupBox()
+        #self.items.scrollArea = QScrollArea(self.items)
+        #self.items.groupItems = QGroupBox()
         #TODO: implement using group box: QScrollArea <- QGroupBox <- a layout () <- widgets ( created with the group box as parent and added to the layout )
                 
         studyItems = self.db.getAllItemsInFull()

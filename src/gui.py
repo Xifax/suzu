@@ -25,9 +25,9 @@ Created on Jan 31, 2011
 # utilitarian
 # TODO: errors logging
 
-import sys
+import sys#, ctypes
 from datetime import datetime
-
+from threading import Thread
 
 from optionsBackend import Options
 from srsManager import srsScheduler
@@ -41,6 +41,7 @@ from guiQuick import QuickDictionary
 #from db import DictionaryLookup
 from db import *
 from guiUtil import roundCorners, unfillLayout
+from utils import BackgroundDownloader, GlobalHotkeyManager
 
 from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent,QByteArray,QThread,SIGNAL
 from PySide.QtGui import *  #TODO: fix to parsimonious imports
@@ -52,39 +53,16 @@ from cjktools.resources import auto_format
 from cjktools.resources import kanjidic
 from cjktools import scripts
 
-import pythoncom, pyHook
+#import pythoncom, pyHook
 #import threading
-
 
 ##########################################
 # Event filters/handlers and key hookers #
 ##########################################
-   
-#class HotkeyHooker(threading.Thread, QObject): 
-class HotkeyHooker(QThread):
 
-    def __init__(self, key):
-        #threading.Thread.__init__(self)
-        QThread.__init__(self)
-        self.key = key
-        #self.finished = threading.Event()
-
-    def OnKeyboardEvent(self, event):
-
-        if event.Key == self.key and event.Ascii == 0:
-            #qdict.showQDict = not qdict.showQDict    #nonstop hooking
-            if quiz.isHidden():
-                qdict.showQDict = True  #while qdict is visible - no hooks!
-            else:
-                self.emit(SIGNAL('noQdict')) 
-        return True
-    
-    def run(self):
-        hm = pyHook.HookManager()
-        hm.KeyDown = self.OnKeyboardEvent
-        hm.HookKeyboard()
-        pythoncom.PumpMessages()
-
+def toggleQDictFlag():
+    qdict.showQDict = True
+           
 def fade(widget):
     if widget.windowOpacity() == 1:
         animationTimer = RepeatTimer(0.025, fadeOut, 10)
@@ -405,7 +383,7 @@ class Quiz(QFrame):
             
         """Test calls here:"""
         ###    ...    ###
-        self.connect(self.hooker, SIGNAL('noQdict'), self.noQdict)
+        #self.connect(self.hooker, SIGNAL('noQdict'), self.noQdict)
 
     def noQdict(self):
         self.showSessionMessage('Nope, cannot show quick dictionary during actual quiz.')
@@ -452,9 +430,10 @@ class Quiz(QFrame):
         self.jmdict = DictionaryLookup()
         
         """Global hotkeys hook"""
-        self.hooker = HotkeyHooker('Q')
-        #self.hooker.setDaemon(True)    #NB: Ends thread on program end
-        #self.hooker.start()
+        #TODO: add multiple hotkeys and fix stop()
+        self.hooker = GlobalHotkeyManager(toggleQDictFlag, 'Q')
+        self.hooker.setDaemon(True) #temporarily, should work using stop()
+        self.hooker.start()
         
         time_end = datetime.now()
         self.loadingTime =  time_end - time_start
@@ -861,6 +840,7 @@ class Quiz(QFrame):
         self.fade()
         QTimer.singleShot(1000, self.hide)
         self.waitUntilNextTimeslot()
+        updater.mayUpdate = True
  
     def pauseQuiz(self):
         if self.isHidden():
@@ -872,9 +852,13 @@ class Quiz(QFrame):
                 
                 self.trayIcon.setIcon(QIcon('../res/tray/inactive.png'))
                 self.stats.pauseStarted()
+                
+                updater.mayUpdate = True
+                
             elif self.pauseAction.text() == '&Start quiz!':
                 self.waitUntilNextTimeslot()
                 self.pauseAction.setText('&Pause')
+                self.pauseAction.setShortcut('P')
                 self.trayIcon.setToolTip('Quiz in progress!')
                 
                 self.trayIcon.setIcon(QIcon('../res/tray/active.png'))
@@ -886,6 +870,8 @@ class Quiz(QFrame):
                 
                 self.trayIcon.setIcon(QIcon('../res/tray/active.png'))
                 self.stats.pauseEnded()
+                
+                updater.mayUpdate = False
         else:
             self.showSessionMessage(u'Sorry, cannot pause while quiz in progress!')
  
@@ -903,6 +889,7 @@ class Quiz(QFrame):
             self.stats.musingsStarted()
             
             if self.nextQuizTimer.isActive():   self.nextQuizTimer.stop()
+            updater.mayUpdate = False
         else:
             self.showSessionMessage(u'Quiz is already underway!')
          
@@ -937,12 +924,10 @@ class Quiz(QFrame):
         #self.setFocus() #NB: does not work
  
     def saveAndExit(self):
-        #TODO: check if it really works as it should
         self.hide()
         self.status.hide()
         self.allInfo.hide()
         self.trayIcon.showMessage('Shutting down...', 'Saving session', QSystemTrayIcon.MessageIcon.Information, 20000 )
-        #self.hooker.exit()
         #self.startTrayLoading()
         
         if self.countdownTimer.isActive():
@@ -954,7 +939,12 @@ class Quiz(QFrame):
             
         self.srs.endCurrentSession()
         self.trayIcon.hide()
-        
+
+        self.hooker.stop()
+        updater.stop()
+        options.close()
+        about.close()
+        qdict.close()
         self.close()        
                 
 if __name__ == '__main__':
@@ -968,5 +958,8 @@ if __name__ == '__main__':
     about = About()
     options = OptionsDialog(quiz.srs.db, quiz.options)
     qdict = QuickDictionary(quiz.jmdict, quiz.edict, quiz.kjd, quiz.srs.db, quiz.options)
+        
+    updater = BackgroundDownloader(quiz.options.getRepetitionInterval())
+    updater.start()
     
     sys.exit(app.exec_())
