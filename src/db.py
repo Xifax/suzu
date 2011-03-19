@@ -483,10 +483,14 @@ class DBoMagic:
         session.commit()
         
     def checkIfActive(self, criteria):
-        if session.query(Kanji).filter(Kanji.tags.like(u'%' + criteria + '%' )).count() > 0:
-            return True
-        else:
-            return False
+        #FIXME: as of now, it just checks if there're are items like these
+        kanji = session.query(Kanji).filter(Kanji.tags.like(u'%' + criteria + '%' )).first()
+        if kanji is not None:
+            return kanji.active
+#        if session.query(Kanji).filter(Kanji.tags.like(u'%' + criteria + '%' )).count() > 0:
+#            return True
+#        else:
+#            return False
         
     def getAllItemsInFull(self):
         return Kanji.query.all()

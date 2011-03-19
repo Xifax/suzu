@@ -3,9 +3,25 @@
 Created on Jan 31, 2011
 
 @author: Yadavito
+@version: 0.0.1
+@requires: Python 2.6.6
+@requires: PySide 1.0.0
 '''
 
 # -> this is main application module <- #
+#===============================================================================
+# --- suzu ---
+# -> main project file <-
+# -> contains: 
+#   - central GUI dialog
+#   - TODO list
+#   - dependencies & packages
+#   - notes and iformation
+# -> structure:
+#
+# -> launch:
+#   - python suzu.py
+#===============================================================================
 
 ##################################
 ### here goes global TODO list ###
@@ -14,7 +30,6 @@ Created on Jan 31, 2011
 # urgent
 # LATER: change button font size depending on number of characters (< 5)
 # TODO: add additional info dialog, briefly describing each kanji in compound
-# PARTIALLY DONE: somehow control basic info vertical and horizontal resize (in case of 5 and more, check horizontal resize)
 
 # concept
 # TODO: implement 'similar kanji' system, based on comparing number of similar rads in RadDict
@@ -25,9 +40,16 @@ Created on Jan 31, 2011
 # utilitarian
 # TODO: errors logging
 
-import sys#, ctypes
-from datetime import datetime
-from threading import Thread
+##################################
+###     Aptana built-ins:      ###
+##################################
+# PySide
+# elixir
+# jcconv
+# enum
+# pkg_resources
+
+import sys
 
 from optionsBackend import Options
 from srsManager import srsScheduler
@@ -38,44 +60,22 @@ from constants import *
 from about import About
 from guiOpt import OptionsDialog
 from guiQuick import QuickDictionary
-#from db import DictionaryLookup
 from db import *
 from guiUtil import roundCorners, unfillLayout
 from utils import BackgroundDownloader, GlobalHotkeyManager
 
-from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent,QByteArray,QThread,SIGNAL
+from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent,QByteArray
 from PySide.QtGui import *  #TODO: fix to parsimonious imports
 
-#TODO: (IDE) fix forced builtins in Aptana settings
 from cjktools.resources.radkdict import RadkDict
-from pkg_resources import resource_filename #por qua thou err like t'ese?
+from pkg_resources import resource_filename
 from cjktools.resources import auto_format
 from cjktools.resources import kanjidic
 from cjktools import scripts
 
-#import pythoncom, pyHook
-#import threading
-
 ##########################################
 # Event filters/handlers and key hookers #
 ##########################################
-
-def toggleQDictFlag():
-    qdict.showQDict = True
-           
-def fade(widget):
-    if widget.windowOpacity() == 1:
-        animationTimer = RepeatTimer(0.025, fadeOut, 10)
-        animationTimer.start()
-    else:
-        animationTimer = RepeatTimer(0.025, fadeIn, 10)
-        animationTimer.start()
-
-def fadeIn():
-    quiz.info.setWindowOpacity(quiz.info.windowOpacity() + 0.4)
-    
-def fadeOut():
-    quiz.info.setWindowOpacity(quiz.info.windowOpacity() - 0.4)
 
 class Filter(QObject):
     """Sentence components mouse hover filter"""
@@ -431,9 +431,10 @@ class Quiz(QFrame):
         
         """Global hotkeys hook"""
         #TODO: add multiple hotkeys and fix stop()
-        self.hooker = GlobalHotkeyManager(toggleQDictFlag, 'Q')
-        self.hooker.setDaemon(True) #temporarily, should work using stop()
-        self.hooker.start()
+        #self.hooker = GlobalHotkeyManager(toggleQDictFlag, 'Q')
+#        self.hooker = GlobalHotkeyManager(toggleWidgetFlag(self.qdict), 'Q')
+#        self.hooker.setDaemon(True) #temporarily, should work using stop()
+#        self.hooker.start()
         
         time_end = datetime.now()
         self.loadingTime =  time_end - time_start
@@ -518,7 +519,7 @@ class Quiz(QFrame):
         #self.info.setLayoutDirection(Qt.RightToLeft)
         
         self.info.reading.setStyleSheet("QLabel { color: rgb(155, 155, 155); }")
-        self.info.components.setStyleSheet("QLabel { color: rgb(125, 125, 125); }")
+        self.info.components.setStyleSheet("QLabel { color: rgb(100, 100, 100); }")
 
 
 ####################################
@@ -894,13 +895,13 @@ class Quiz(QFrame):
             self.showSessionMessage(u'Quiz is already underway!')
          
     def showOptions(self):
-        options.show()
+        self.optionsDialog.show()
         
     def showAbout(self):
-        about.show()
+        self.about.show()
         
     def showQuickDict(self):
-        qdict.showQDict = True
+        self.qdict.showQDict = True
         
     def showGlobalStatistics(self):
         print '...'
@@ -941,11 +942,24 @@ class Quiz(QFrame):
         self.trayIcon.hide()
 
         self.hooker.stop()
-        updater.stop()
-        options.close()
-        about.close()
-        qdict.close()
+
+        self.updater.stop()
+        self.optionsDialog.close()
+        self.about.close()
+        self.qdict.close()
         self.close()        
+        
+    def addReferences(self, about, options, qdict, updater):
+        self.about = about
+        self.optionsDialog = options
+        self.qdict = qdict
+        self.updater = updater
+        
+    def initGlobalHotkeys(self):
+        def toggleWidgetFlag(): self.qdict.showQDict = True
+        self.hooker = GlobalHotkeyManager(toggleWidgetFlag , 'Q')
+        self.hooker.setDaemon(True)
+        self.hooker.start()
                 
 if __name__ == '__main__':
 
@@ -961,5 +975,8 @@ if __name__ == '__main__':
         
     updater = BackgroundDownloader(quiz.options.getRepetitionInterval())
     updater.start()
+    
+    quiz.addReferences(about, options, qdict, updater)
+    quiz.initGlobalHotkeys()
     
     sys.exit(app.exec_())

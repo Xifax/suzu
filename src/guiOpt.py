@@ -426,7 +426,7 @@ class OptionsDialog(QFrame):
     def updateDbTable(self):
         self.tagsView.clearContents()
         self.tagsView.setRowCount(0)
-        #self.tagsView.clear()
+        #TODO: scan db for all possible tags, not just predefined
         dbStats = self.db.countItemsByGrades()
         i = 0
         for item in dbStats:
@@ -443,8 +443,9 @@ class OptionsDialog(QFrame):
                 self.tagsView.setItem(i, 2, QTableWidgetItem(str(dbStats[item])))
                    
                 checkedItem = QTableWidgetItem();  checkedItem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled | Qt.ItemIsSelectable);
-                #checkedItem.checkState()
+
                 if self.db.checkIfActive(item):  checkedItem.setCheckState(Qt.Checked)
+                else: checkedItem.setCheckState(Qt.Unchecked)
 
                 self.tagsView.setItem(i, 3, checkedItem)
                 i = i + 1
