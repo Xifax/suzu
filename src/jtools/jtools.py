@@ -5,8 +5,10 @@ Created on Feb 16, 2011
 @author: Yadavito
 '''
 
+# internal #
 import urllib2
 from xml.etree import ElementTree
+# external #
 from jcconv import kata2hira
 
 class MecApiClient:

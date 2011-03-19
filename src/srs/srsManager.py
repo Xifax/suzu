@@ -5,13 +5,15 @@ Created on Feb 7, 2011
 @author: Yadavito
 '''
 
-#from db import Kanji,Word,Example,DBoMagic
-from db import DBoMagic
-from jisho import JishoClient
+# own #
+from jdict.db import DBoMagic
+from jtools.jisho import JishoClient
+from leitner import Leitner
+from settings.constants import modes, modeByKey
+
+# external #
 from mParser.mecabTool import MecabTool
 from jcconv import kata2hira
-from leitner import Leitner
-from constants import modes, modeByKey
 
 class srsScheduler:
 
@@ -39,7 +41,7 @@ class srsScheduler:
         """Get next quiz item reading, set current quiz item"""
         self.currentItem = self.db.getNextQuizItem()
         self.currentExample = u''
-        #return self.currentItem.character
+        #TODO: add check for NoneType
     
     def getCurrentItem(self):
         """Returns kanji itself"""

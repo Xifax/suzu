@@ -4,9 +4,10 @@ Created on Feb 11, 2011
 
 @author: Yadavito
 '''
-
+# own #
+from settings.constants import __version__
+# external #
 from userconfig import UserConfig
-from constants import __version__#,__application__
 
 class Options:
     

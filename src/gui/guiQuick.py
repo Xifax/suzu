@@ -5,33 +5,17 @@ Created on Feb 27, 2011
 @author: Yadavito
 '''
 
-import sys#, re
+# own #
+from settings.constants import Q_HEIGTH, Q_WIDTH, Q_INDENT, Q_VINDENT, Q_SPACE
+from settings.fonts import Fonts
 
+# external #
 from PySide.QtCore import *
 from PySide.QtGui import *
-
-#import uromkan
 from uromkan import romkan, normalize_double_n
-
 from cjktools import scripts
 from jcconv import hira2kata
 
-from constants import Q_HEIGTH, Q_WIDTH, Q_INDENT, Q_VINDENT, Q_SPACE
-
-from fonts import Fonts
-#from guiUtil import unfillLayout 
-
-#class Filter(QObject):
-#    def eventFilter(self, object, event):
-#
-#        if event.type() == QEvent.MouseButtonPress:
-#            print '!'
-#            if event.button() ==  Qt.LeftButton:
-#                print '?'
-##        if event.type() == QEvent.MouseMove:
-##            print '!'
-#            
-#        return False
 
 class QuickDictionary(QFrame):
     

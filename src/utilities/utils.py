@@ -7,8 +7,8 @@ Created on Mar 6, 2011
 
 #from PySide.QtCore import QThread, QTimer
 
-from jisho import JishoClient
-from db import DBBackgroundUpdater
+from jtools.jisho import JishoClient
+from jdict.db import DBBackgroundUpdater
 
 import ctypes
 from ctypes import wintypes

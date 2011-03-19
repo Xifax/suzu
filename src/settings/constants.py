@@ -7,6 +7,7 @@ Created on Feb 26, 2011
 
 """Global/useful constants"""
 
+# external #
 from enum import Enum
 
 ##########################
@@ -54,11 +55,15 @@ Q_SPACE = 30
 ###########################
 
 SQLITE = 'sqlite:///'
-PATH_TO_RES = '../res/'     #may change depending on nested folder level (e.g. srs/package/$.py)
+PATH_TO_RES = '../res/'
 DBNAME = 'studying.db'
 KANJIDIC2 = 'kanjidic2.db'
 JMDICT = 'jmdict.db'
 JMDICT_DUMP = 'jmdict.pck'
+
+ICONS = 'icons/'
+LOGOS = 'logo/'
+TRAY = 'tray/'
 
 ###########################
 ### version information ###

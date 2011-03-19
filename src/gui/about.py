@@ -5,15 +5,19 @@ Created on Feb 22, 2011
 @author: Yadavito
 '''
 
-import sys
+# internal #
 import platform
 
+# own #
+from settings.fonts import Fonts
+from settings.constants import A_HEIGHT,A_WIDTH,\
+                                PATH_TO_RES,LOGOS,\
+                                __version__
+# external #
 import PySide
 from PySide.QtGui import *
 from PySide.QtCore import *
 
-from fonts import Fonts
-from constants import A_HEIGHT,A_WIDTH,__version__
 
 class Filter(QObject):
     def eventFilter(self, object, event):
@@ -45,9 +49,6 @@ class About(QFrame):
      
     def __init__(self, parent=None):
         super(About, self).__init__(parent)
-        
-        #self.logo_scene = QGraphicsScene()
-        #self.logo = QGraphicsView()
         
         ### components ###
         self.aboutApp = QLabel(u'')
@@ -82,7 +83,6 @@ class About(QFrame):
         
     def initializeComposition(self):
         
-        #self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint)
         self.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         
@@ -91,11 +91,10 @@ class About(QFrame):
         desktop = QApplication.desktop().screenGeometry()
 
         self.setGeometry(QRect((desktop.width() - A_WIDTH)/2, (desktop.height() - A_HEIGHT)/2, A_WIDTH, A_HEIGHT))
-
         
     def initializeComponents(self):
-        self.logo_1st = QPixmap("../res/suzu.png")
-        self.logo_2nd = QPixmap("../res/suzu_neo.png")
+        self.logo_1st = QPixmap(PATH_TO_RES + LOGOS + 'suzu.png')
+        self.logo_2nd = QPixmap(PATH_TO_RES + LOGOS + 'suzu_neo.png')
         
         self.logo.setPixmap(self.logo_1st)
         self.logo.installEventFilter(self.filter)
@@ -113,17 +112,3 @@ class About(QFrame):
         
         self.closeAbout.setText(u'善し！')
         self.closeAbout.setFont(QFont(Fonts.HiragiNoMyoutyouProW3, 18))
-        #self.closeAbout.setGeometry(QRect(0,0,self.about.width(), self.about.height()))
-
-
-        #self.logo_scene.addItem(QGraphicsPixmapItem(self.logo_1st))
-        #self.logo.setScene(self.logo_scene)
-
-
-#app = QApplication(sys.argv)
-#app.setStyle('plastique')
-#
-#about = About()
-#about.show()
-#
-#sys.exit(app.exec_())

@@ -4,7 +4,9 @@ Created on Feb 7, 2011
 
 @author: Yadavito
 '''
-import urllib2, re#, thread
+# internal #
+import urllib2, re
+# external #
 from BeautifulSoup import BeautifulSoup
 from mParser.mecabTool import MecabTool
 from jcconv import kata2hira

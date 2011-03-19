@@ -5,21 +5,23 @@ Created on Feb 12, 2011
 @author: Yadavito
 '''
 
-from constants import *
+# internal #
 from datetime import datetime
-from elixir import Entity, Field, Unicode, Integer, TIMESTAMP, ManyToMany, \
-    metadata, session, create_all, setup_all, BOOLEAN, cleanup_all
 from itertools import permutations, repeat
-from jcconv import hira2kata
-from leitner import Leitner
 from random import shuffle, sample, randrange
+import os.path, pickle, re
+# own #
+from settings.constants import *
+from srs.leitner import Leitner
+
+# external #
+from elixir import Entity, Field, Unicode, Integer, TIMESTAMP, ManyToMany, \
+    metadata, session, create_all, setup_all, BOOLEAN#, cleanup_all
 from sqlalchemy import asc, and_, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.sqlsoup import SqlSoup
-from sqlalchemy.orm.exc import NoResultFound
-import os.path
-import pickle
-import re
+#from sqlalchemy.orm.exc import NoResultFound
+from jcconv import hira2kata
 
 def removeDuplicates(list):
     set = {}

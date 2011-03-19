@@ -5,16 +5,19 @@ Created on Feb 16, 2011
 @author: Yadavito
 '''
 
+# internal #
 import sys
 
+# external #
 from PySide.QtCore import *
 from PySide.QtGui import *
 
-from constants import *
-from guiUtil import roundCorners, unfillLayout
-from rtimer import RepeatTimer
-from leitner import Leitner
-from fonts import Fonts
+# own #
+from settings.constants import *
+from gui.guiUtil import roundCorners, unfillLayout
+from utilities.rtimer import RepeatTimer
+from srs.leitner import Leitner
+from settings.fonts import Fonts
 
 class StatusFilter(QObject):
     """Status message mouse click filter"""
@@ -515,94 +518,97 @@ class OptionsDialog(QFrame):
                 
         studyItems = self.db.getAllItemsInFull()
         
-        #progress = QProgressDialog('Loading items list...', 'Cancel', 0, len(studyItems), self)
-        progress = QProgressDialog('Loading items list...', None, 0, len(studyItems), self)
-        progress.setWindowModality(Qt.WindowModal)
-        progress.show()
-        count = 0;
-        
-        i=0; j=0; max_c = 40#; max_r =50
-        for item in studyItems:
-            element = QLabel(item.character)
-            element.setFont(QFont(self.options.getInfoFont(), 20))
+        if len(studyItems) == 0:
+            QMessageBox.information(self, 'No items', 'Currently no items in db')
+        else:
+            #progress = QProgressDialog('Loading items list...', 'Cancel', 0, len(studyItems), self)
+            progress = QProgressDialog('Loading items list...', None, 0, len(studyItems), self)
+            progress.setWindowModality(Qt.WindowModal)
+            progress.show()
+            count = 0;
             
-            #if item.active:  element.setStyleSheet("QLabel { color:" + Leitner.correspondingColor(item.leitner_grade) + "}")
-            #else: element.setStyleSheet("QLabel { color:gray }")
-            if item.active:  color = Leitner.correspondingColor(item.leitner_grade)
-            else: color = 'gray'
+            i=0; j=0; max_c = 40#; max_r =50
+            for item in studyItems:
+                element = QLabel(item.character)
+                element.setFont(QFont(self.options.getInfoFont(), 20))
+                
+                #if item.active:  element.setStyleSheet("QLabel { color:" + Leitner.correspondingColor(item.leitner_grade) + "}")
+                #else: element.setStyleSheet("QLabel { color:gray }")
+                if item.active:  color = Leitner.correspondingColor(item.leitner_grade)
+                else: color = 'gray'
+                
+                if self.options.isBackgroundOn():
+                    element.setStyleSheet("QLabel { color: black; background-color:" + color + "; border: 1px solid white; }")
+                    #element.setStyleSheet("QLabel { color: blue; }")
+                else:
+                    element.setStyleSheet("QLabel { color:" + color + "}")
+                
+                element.setAttribute(Qt.WA_Hover, True)
+                element.installEventFilter(self.filter)
+                
+                words = []; examples = {}
+                for el in item.word:
+                    words.append(el.word)
+                for el in item.example:
+                    examples[el.sentence] = el.translation
+    
+                element.params = {'color' : color, 'next': item.next_quiz.strftime('%d %b %H:%M:%S'), 'inSession': item.been_in_session, 
+                                  'words': words, 'examples': examples, 'leitner': Leitner.grades[item.leitner_grade].key}
+                
+                self.items.layout.addWidget(element, i, j)
+                
+                count = count + 1
+                progress.setValue(count)
+                if progress.wasCanceled():
+                    break
+                
+                if j > max_c:
+                    i = i + 1; j = 0
+                else:
+                    j = j + 1
             
-            if self.options.isBackgroundOn():
-                element.setStyleSheet("QLabel { color: black; background-color:" + color + "; border: 1px solid white; }")
-                #element.setStyleSheet("QLabel { color: blue; }")
-            else:
-                element.setStyleSheet("QLabel { color:" + color + "}")
+            separator_two = QFrame();   separator_two.setFrameShape(QFrame.HLine);    separator_two.setFrameShadow(QFrame.Sunken)
+            self.items.layout.addWidget(separator_two, i + 1, 0, 1, self.items.layout.columnCount())
             
-            element.setAttribute(Qt.WA_Hover, True)
-            element.installEventFilter(self.filter)
+            self.items.kanjiLarge = QLabel(u'')
+            self.items.kanjiLarge.setFont(QFont(self.options.getSentenceFont(), 56))
+            self.items.words = QLabel(u'')
+            self.items.words.setWordWrap(True)
+            self.items.words.setFont(QFont(Fonts.MSMyoutyou, 18))
+            self.items.next = QLabel(u'')
+            self.items.leitner = QLabel(u'')
             
-            words = []; examples = {}
-            for el in item.word:
-                words.append(el.word)
-            for el in item.example:
-                examples[el.sentence] = el.translation
-
-            element.params = {'color' : color, 'next': item.next_quiz.strftime('%d %b %H:%M:%S'), 'inSession': item.been_in_session, 
-                              'words': words, 'examples': examples, 'leitner': Leitner.grades[item.leitner_grade].key}
+            self.items.infoLayout.addWidget(self.items.kanjiLarge)
+            self.items.infoLayout.addWidget(self.items.next)
+            self.items.infoLayout.addWidget(self.items.leitner)
+            self.items.infoLayout.addWidget(self.items.words)
             
-            self.items.layout.addWidget(element, i, j)
+            #self.items.infoLayout.setAlignment(Qt.AlignCenter)
             
-            count = count + 1
-            progress.setValue(count)
-            if progress.wasCanceled():
-                break
+            '''
+            #NB: or, may be, add horizontal layout?
+            self.items.layout.addWidget(self.items.kanjiLarge, i + 2, 0, 2, 2)
+            self.items.layout.addWidget(self.items.next, i + 2, 3, 1, 1)
+            self.items.layout.addWidget(self.items.leitner, i + 3, 3, 1, 1)
             
-            if j > max_c:
-                i = i + 1; j = 0
-            else:
-                j = j + 1
-        
-        separator_two = QFrame();   separator_two.setFrameShape(QFrame.HLine);    separator_two.setFrameShadow(QFrame.Sunken)
-        self.items.layout.addWidget(separator_two, i + 1, 0, 1, self.items.layout.columnCount())
-        
-        self.items.kanjiLarge = QLabel(u'')
-        self.items.kanjiLarge.setFont(QFont(self.options.getSentenceFont(), 56))
-        self.items.words = QLabel(u'')
-        self.items.words.setWordWrap(True)
-        self.items.words.setFont(QFont(Fonts.MSMyoutyou, 18))
-        self.items.next = QLabel(u'')
-        self.items.leitner = QLabel(u'')
-        
-        self.items.infoLayout.addWidget(self.items.kanjiLarge)
-        self.items.infoLayout.addWidget(self.items.next)
-        self.items.infoLayout.addWidget(self.items.leitner)
-        self.items.infoLayout.addWidget(self.items.words)
-        
-        #self.items.infoLayout.setAlignment(Qt.AlignCenter)
-        
-        '''
-        #NB: or, may be, add horizontal layout?
-        self.items.layout.addWidget(self.items.kanjiLarge, i + 2, 0, 2, 2)
-        self.items.layout.addWidget(self.items.next, i + 2, 3, 1, 1)
-        self.items.layout.addWidget(self.items.leitner, i + 3, 3, 1, 1)
-        
-        #self.items.layout.addWidget(self.items.kanjiLarge, i + 2, 9, 1, 4)
-        '''
-        
-        if self.options.isBackgroundOn():  self.items.layout.setSpacing(0)
-        else:   self.items.layout.setSpacing(6)
-
-        
-        #self.items.layout.addLayout(self.items.infoLayout, i + 2, 0, 1, self.items.layout.columnCount())
-        #self.items.layout.addLayout(self.items.infoLayout, i + 2, 0, 1, 8)
-        self.items.layout.addLayout(self.items.infoLayout, i + 2, self.items.layout.columnCount()/2, 1, 8)
-        
-        #self.items.scrollArea.setLayout(self.items.layout)
-        
-        #self.groupItems.setLayout(self.items.layout)
-        #self.scrollArea.setWidget(self.groupItems)
-        
-        self.items.setLayout(self.items.layout)
-        self.items.show()
+            #self.items.layout.addWidget(self.items.kanjiLarge, i + 2, 9, 1, 4)
+            '''
+            
+            if self.options.isBackgroundOn():  self.items.layout.setSpacing(0)
+            else:   self.items.layout.setSpacing(6)
+    
+            
+            #self.items.layout.addLayout(self.items.infoLayout, i + 2, 0, 1, self.items.layout.columnCount())
+            #self.items.layout.addLayout(self.items.infoLayout, i + 2, 0, 1, 8)
+            self.items.layout.addLayout(self.items.infoLayout, i + 2, self.items.layout.columnCount()/2, 1, 8)
+            
+            #self.items.scrollArea.setLayout(self.items.layout)
+            
+            #self.groupItems.setLayout(self.items.layout)
+            #self.scrollArea.setWidget(self.groupItems)
+            
+            self.items.setLayout(self.items.layout)
+            self.items.show()
         
 #------------------- Fading methods ---------------------#
     def fadeStatus(self):

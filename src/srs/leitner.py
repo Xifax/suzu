@@ -5,8 +5,10 @@ Created on Feb 11, 2011
 @author: Yadavito
 '''
 
-from enum import Enum
+# internal #
 from datetime import datetime, timedelta
+# own #
+from enum import Enum
 
 class Leitner:
     #TODO: move to constants.py, really

@@ -3,70 +3,29 @@
 Created on Jan 31, 2011
 
 @author: Yadavito
-@version: 0.0.1
-@requires: Python 2.6.6
-@requires: PySide 1.0.0
 '''
 
-# -> this is main application module <- #
-#===============================================================================
-# --- suzu ---
-# -> main project file <-
-# -> contains: 
-#   - central GUI dialog
-#   - TODO list
-#   - dependencies & packages
-#   - notes and iformation
-# -> structure:
-#
-# -> launch:
-#   - python suzu.py
-#===============================================================================
-
-##################################
-### here goes global TODO list ###
-##################################
-
-# urgent
-# LATER: change button font size depending on number of characters (< 5)
-# TODO: add additional info dialog, briefly describing each kanji in compound
-
-# concept
-# TODO: implement 'similar kanji' system, based on comparing number of similar rads in RadDict
-
-# functionality
-# ...
-
-# utilitarian
-# TODO: errors logging
-
-##################################
-###     Aptana built-ins:      ###
-##################################
-# PySide
-# elixir
-# jcconv
-# enum
-# pkg_resources
-
+# internal #
 import sys
+from datetime import datetime
 
-from optionsBackend import Options
-from srsManager import srsScheduler
-from rtimer import RepeatTimer
-from fonts import Fonts
-from stats import Stats
-from constants import *
-from about import About
-from guiOpt import OptionsDialog
-from guiQuick import QuickDictionary
-from db import *
-from guiUtil import roundCorners, unfillLayout
-from utils import BackgroundDownloader, GlobalHotkeyManager
+# own #
+from srs.srsManager import srsScheduler
+from settings.fonts import Fonts
+from settings.optionsBackend import Options
+from settings.constants import *
+from utilities.rtimer import RepeatTimer
+from utilities.stats import Stats
+from utilities.utils import BackgroundDownloader, GlobalHotkeyManager
+from gui.about import About
+from gui.guiOpt import OptionsDialog
+from gui.guiQuick import QuickDictionary
+from gui.guiUtil import roundCorners, unfillLayout
+from jdict.db import DictionaryLookup
 
+# external #
 from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent,QByteArray
-from PySide.QtGui import *  #TODO: fix to parsimonious imports
-
+from PySide.QtGui import *
 from cjktools.resources.radkdict import RadkDict
 from pkg_resources import resource_filename
 from cjktools.resources import auto_format
@@ -84,20 +43,20 @@ class Filter(QObject):
         if event.type() == QEvent.HoverLeave:
             object.setStyleSheet("QLabel { color: rgb(0, 0, 0); }")
             
-            quiz.info.hide()
-            quiz.allInfo.hide()
+            object.parent().info.hide()
+            object.parent().allInfo.hide()
 
             desktop = QApplication.desktop().screenGeometry()
-            quiz.info.setGeometry(QRect(desktop.width() - H_INDENT - I_WIDTH - I_INDENT, desktop.height() - V_INDENT, I_WIDTH, I_HEIGHT))
+            object.parent().info.setGeometry(QRect(desktop.width() - H_INDENT - I_WIDTH - I_INDENT, desktop.height() - V_INDENT, I_WIDTH, I_HEIGHT))
         
         if event.type() == QEvent.HoverEnter:
             object.setStyleSheet("QLabel { color: rgb(0, 5, 255); }")
             
-            quiz.info.item.setText(object.text())
+            object.parent().info.item.setText(object.text())
             
-            reading = quiz.srs.getWordPronunciationFromExample(object.text())
-            if reading != object.text() :  quiz.info.reading.setText(reading)
-            else:   quiz.info.reading.setText(u'')
+            reading = object.parent().srs.getWordPronunciationFromExample(object.text())
+            if reading != object.text() :  object.parent().info.reading.setText(reading)
+            else:   object.parent().info.reading.setText(u'')
             
             #parsing word
             script = scripts.script_boundaries(object.text())
@@ -106,40 +65,40 @@ class Filter(QObject):
             for cluster in script:
                 if scripts.script_type(cluster) == scripts.Script.Kanji:
                     for kanji in cluster:
-                        components = components + list(quiz.rdk[kanji]) + list('\n')
+                        components = components + list(object.parent().rdk[kanji]) + list('\n')
                         #kanji_list.append(kanji)
                 
             #setting radikals
             if len(components) > 0: components.pop()    #remove last '\n'
-            quiz.info.components.setText(' '.join(components))
+            object.parent().info.components.setText(' '.join(components))
             
             #looking up translation    #TODO: show translation only when left/right button is pressed (otherwise, show just main translation)
             '''
             try:
-                search = quiz.edict[object.text()]
-                #quiz.info.translation.setText(' '.join(search.senses))        #NB: TOO MUCH!
-                quiz.info.translation.setText(search.senses_by_reading()[quiz.srs.getWordPronunciationFromExample(object.text())][0])
+                search = object.parent().edict[object.text()]
+                #object.parent().info.translation.setText(' '.join(search.senses))        #NB: TOO MUCH!
+                object.parent().info.translation.setText(search.senses_by_reading()[object.parent().srs.getWordPronunciationFromExample(object.text())][0])
             except:
-                quiz.info.translation.setText('')
+                object.parent().info.translation.setText('')
             '''
             
-            #quiz.info.setWindowOpacity(0)
-            #fade(quiz.info)
-            #QTimer.singleShot(100, quiz.info.show)      #for additional smoothness
-            quiz.info.show()
+            #object.parent().info.setWindowOpacity(0)
+            #fade(object.parent().info)
+            #QTimer.singleShot(100, object.parent().info.show)      #for additional smoothness
+            object.parent().info.show()
 
         if event.type() == QEvent.MouseButtonPress:
             if event.button() == Qt.MiddleButton:
                 print 'Middle'   #TODO: add distinction between actions     
             if event.button() == Qt.LeftButton:
                 print 'Left'   #TODO: add distinction between actions
-            if quiz.info.isVisible() and quiz.allInfo.isHidden():  
-                quiz.info.hide()
+            if object.parent().info.isVisible() and object.parent().allInfo.isHidden():  
+                object.parent().info.hide()
                               
-                #quiz.unfill(quiz.allInfo.layout)
-                unfillLayout(quiz.allInfo.layout)
-                quiz.allInfo.layout.setMargin(1)
-                #quiz.allInfo.layout.setAlignment(Qt.AlignCenter)
+                #object.parent().unfill(object.parent().allInfo.layout)
+                unfillLayout(object.parent().allInfo.layout)
+                object.parent().allInfo.layout.setMargin(1)
+                #object.parent().allInfo.layout.setAlignment(Qt.AlignCenter)
                 
                 kanjiList = []
                 script = scripts.script_boundaries(object.text())
@@ -170,7 +129,7 @@ class Filter(QObject):
                             movie.setSpeed(150) 
                             
                             gif.setMovie(movie)
-                            quiz.allInfo.layout.addWidget(gif, i, j);   j = j + 1
+                            object.parent().allInfo.layout.addWidget(gif, i, j);   j = j + 1
                             movie.start()
                               
                     i = i + 1
@@ -181,8 +140,8 @@ class Filter(QObject):
                 translations.setWordWrap(True)
                 translations.setAlignment(Qt.AlignCenter)
                 try:
-                    #search = quiz.edict[object.text()]
-                    search = quiz.edict[quiz.srs.getWordNonInflectedForm(object.text())]
+                    #search = object.parent().edict[object.text()]
+                    search = object.parent().edict[object.parent().srs.getWordNonInflectedForm(object.text())]
 
                     translationText = u''
                     '''
@@ -197,37 +156,37 @@ class Filter(QObject):
                     translations.setText(translationText.rstrip('\n'))
                     '''
                     
-                    #variants = search.senses_by_reading()[quiz.srs.getWordPronunciationFromExample(object.text())]#[0]       #NB: add non-inflected form control
-                    variants = search.senses_by_reading()[quiz.srs.getWordPronounciation(quiz.srs.getWordNonInflectedForm(object.text()))][:3]  #TODO: or add option, specifying, how many variants
+                    #variants = search.senses_by_reading()[object.parent().srs.getWordPronunciationFromExample(object.text())]#[0]       #NB: add non-inflected form control
+                    variants = search.senses_by_reading()[object.parent().srs.getWordPronounciation(object.parent().srs.getWordNonInflectedForm(object.text()))][:3]  #TODO: or add option, specifying, how many variants
                     variants = filter (lambda e: e != '(P)', variants)                                                                          #should be shown
                     
-                    translationText += '<b>' + quiz.srs.getWordPronunciationFromExample(object.text()) + '</b>:\t' + ', '.join(variants)
+                    translationText += '<b>' + object.parent().srs.getWordPronunciationFromExample(object.text()) + '</b>:\t' + ', '.join(variants)
                     translations.setText(translationText.rstrip('\n'))
                     
                     #print translations.text()
                 except:
-                    #quiz.jmdict.lookupItemTranslationJoin(quiz.srs.getWordNonInflectedForm(object.text()))
+                    #object.parent().jmdict.lookupItemTranslationJoin(object.parent().srs.getWordNonInflectedForm(object.text()))
                     # at first - search just kana
                     # then - search word by reading
                     '''    
-                    search = quiz.jmdict.lookupItemByReading(quiz.srs.getWordPronounciation(quiz.srs.getWordNonInflectedForm(object.text())))
+                    search = object.parent().jmdict.lookupItemByReading(object.parent().srs.getWordPronounciation(object.parent().srs.getWordNonInflectedForm(object.text())))
                     if len(search) > 0:
-                        lookup = quiz.jmdict.lookupItemTranslationJoin(search[0])
+                        lookup = object.parent().jmdict.lookupItemTranslationJoin(search[0])
                         if len(lookup) > 5: lookup = lookup[:5]
-                        translations.setText('<b>' + quiz.srs.getWordPronunciationFromExample(object.text())+ '</b>:\t' + ', '.join(lookup))
+                        translations.setText('<b>' + object.parent().srs.getWordPronunciationFromExample(object.text())+ '</b>:\t' + ', '.join(lookup))
                     '''
                     ### by reading
-                    search = quiz.jmdict.lookupTranslationByReadingJoin(quiz.srs.getWordPronounciation(quiz.srs.getWordNonInflectedForm(object.text())), quiz.options.getLookupLang())
+                    search = object.parent().jmdict.lookupTranslationByReadingJoin(object.parent().srs.getWordPronounciation(object.parent().srs.getWordNonInflectedForm(object.text())), object.parent().options.getLookupLang())
                     if len(search) > 0:
                         if len(search) > 5: search = search[:5]
-                        translations.setText('<b>' + quiz.srs.getWordPronunciationFromExample(object.text())+ '</b>:\t' + ', '.join(search))
+                        translations.setText('<b>' + object.parent().srs.getWordPronunciationFromExample(object.text())+ '</b>:\t' + ', '.join(search))
                     ### by kanji
                     else:
-                        search = quiz.jmdict.lookupItemByReading(quiz.srs.getWordPronounciation(quiz.srs.getWordNonInflectedForm(object.text())))
+                        search = object.parent().jmdict.lookupItemByReading(object.parent().srs.getWordPronounciation(object.parent().srs.getWordNonInflectedForm(object.text())))
                         if len(search) > 0:
-                            lookup = quiz.jmdict.lookupItemTranslationJoin(search[0], quiz.options.getLookupLang())
+                            lookup = object.parent().jmdict.lookupItemTranslationJoin(search[0], object.parent().options.getLookupLang())
                             if len(lookup) > 5: lookup = lookup[:5]
-                            translations.setText('<b>' + quiz.srs.getWordPronunciationFromExample(object.text())+ '</b>:\t' + ', '.join(lookup))
+                            translations.setText('<b>' + object.parent().srs.getWordPronunciationFromExample(object.text())+ '</b>:\t' + ', '.join(lookup))
                     ### nothing found
                     if len(search) == 0: translations.setText(u'Alas, no translation in edict or jmdict!')
                 
@@ -235,17 +194,17 @@ class Filter(QObject):
                     separator = QFrame()
                     separator.setFrameShape(QFrame.HLine)
                     separator.setFrameShadow(QFrame.Sunken)
-                    quiz.allInfo.layout.addWidget(separator, i, 0, 1, j);   i = i + 1
+                    object.parent().allInfo.layout.addWidget(separator, i, 0, 1, j);   i = i + 1
                 
-                quiz.allInfo.layout.addWidget(translations, i, 0, 1, j)    #NB: rows span should be changed, maybe
+                object.parent().allInfo.layout.addWidget(translations, i, 0, 1, j)    #NB: rows span should be changed, maybe
                 
-                quiz.allInfo.update()
-                quiz.allInfo.show()
+                object.parent().allInfo.update()
+                object.parent().allInfo.show()
                 
-            elif quiz.allInfo.isVisible():  #quiz.info.isHidden():
+            elif object.parent().allInfo.isVisible():  #object.parent().info.isHidden():
 
-                quiz.allInfo.hide()   
-                quiz.info.show()
+                object.parent().allInfo.hide()   
+                object.parent().info.show()
             
         return False
 
@@ -254,13 +213,13 @@ class StatusFilter(QObject):
     def eventFilter(self, object, event):
         
         if event.type() == QEvent.HoverEnter:
-            quiz.status.setWindowOpacity(0.70)
+            object.parent().status.setWindowOpacity(0.70)
             
         if event.type() == QEvent.HoverLeave:
-            quiz.status.setWindowOpacity(1)
+            object.parent().status.setWindowOpacity(1)
             
         if event.type() == QEvent.MouseButtonPress:
-            quiz.status.hide()
+            object.parent().status.hide()
             
         return False
 
@@ -281,18 +240,15 @@ class Quiz(QFrame):
         self.status.layout.addWidget(self.status.message)
         self.status.setLayout(self.status.layout)
         ##mouse event filter
-        self.status.filter = StatusFilter()
+        #self.status.filter = StatusFilter()
         self.status.setAttribute(Qt.WA_Hover, True)
-        self.status.installEventFilter(self.status.filter)
+        #self.status.installEventFilter(self.status.filter)
 
         """Items Info"""
         self.info = QFrame()
         self.info.reading = QLabel(u'')
         self.info.item = QLabel(u'')
         self.info.components = QLabel(u'')
-        ##translation
-        #self.info.translation = QLabel(u'')
-        #self.info.animationTimer = ()
 
         separator_one = QFrame()
         separator_one.setFrameShape(QFrame.HLine)
@@ -308,7 +264,6 @@ class Quiz(QFrame):
         self.info.layout.addWidget(self.info.item)
         self.info.layout.addWidget(separator_two)
         self.info.layout.addWidget(self.info.components)
-        #self.info.layout.addWidget(self.info.translation)
         self.info.setLayout(self.info.layout)
         
         """Verbose Info"""
@@ -496,7 +451,7 @@ class Quiz(QFrame):
         self.sentence.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))
         
         self.sentence.setWordWrap(True)
-        self.trayIcon.setIcon(QIcon('../res/tray/active.png'))
+        self.trayIcon.setIcon(QIcon(PATH_TO_RES + TRAY + 'active.png'))
         
         self.status.message.setFont(QFont('Cambria', self.options.getMessageFontSize()))
         self.status.layout.setAlignment(Qt.AlignCenter)
@@ -841,7 +796,7 @@ class Quiz(QFrame):
         self.fade()
         QTimer.singleShot(1000, self.hide)
         self.waitUntilNextTimeslot()
-        updater.mayUpdate = True
+        self.updater.mayUpdate = True
  
     def pauseQuiz(self):
         if self.isHidden():
@@ -851,10 +806,10 @@ class Quiz(QFrame):
                 self.pauseAction.setShortcut('U')
                 self.trayIcon.setToolTip('Quiz paused!')
                 
-                self.trayIcon.setIcon(QIcon('../res/tray/inactive.png'))
+                self.trayIcon.setIcon(QIcon(PATH_TO_RES + TRAY + 'inactive.png'))
                 self.stats.pauseStarted()
                 
-                updater.mayUpdate = True
+                self.updater.mayUpdate = True
                 
             elif self.pauseAction.text() == '&Start quiz!':
                 self.waitUntilNextTimeslot()
@@ -862,17 +817,17 @@ class Quiz(QFrame):
                 self.pauseAction.setShortcut('P')
                 self.trayIcon.setToolTip('Quiz in progress!')
                 
-                self.trayIcon.setIcon(QIcon('../res/tray/active.png'))
+                self.trayIcon.setIcon(QIcon(PATH_TO_RES + TRAY + 'active.png'))
             else:
                 self.waitUntilNextTimeslot()
                 self.pauseAction.setText('&Pause')
                 self.pauseAction.setShortcut('P')
                 self.trayIcon.setToolTip('Quiz in progress!')
                 
-                self.trayIcon.setIcon(QIcon('../res/tray/active.png'))
+                self.trayIcon.setIcon(QIcon(PATH_TO_RES + TRAY + 'active.png'))
                 self.stats.pauseEnded()
                 
-                updater.mayUpdate = False
+                self.updater.mayUpdate = False
         else:
             self.showSessionMessage(u'Sorry, cannot pause while quiz in progress!')
  
@@ -890,7 +845,7 @@ class Quiz(QFrame):
             self.stats.musingsStarted()
             
             if self.nextQuizTimer.isActive():   self.nextQuizTimer.stop()
-            updater.mayUpdate = False
+            self.updater.mayUpdate = False
         else:
             self.showSessionMessage(u'Quiz is already underway!')
          
@@ -960,23 +915,3 @@ class Quiz(QFrame):
         self.hooker = GlobalHotkeyManager(toggleWidgetFlag , 'Q')
         self.hooker.setDaemon(True)
         self.hooker.start()
-                
-if __name__ == '__main__':
-
-    app = QApplication(sys.argv)
-    
-    quiz = Quiz()
-    if quiz.options.isPlastique():  app.setStyle('plastique')
-    quiz.setWindowIcon(QIcon('../res/icons/suzu.png'))
-    
-    about = About()
-    options = OptionsDialog(quiz.srs.db, quiz.options)
-    qdict = QuickDictionary(quiz.jmdict, quiz.edict, quiz.kjd, quiz.srs.db, quiz.options)
-        
-    updater = BackgroundDownloader(quiz.options.getRepetitionInterval())
-    updater.start()
-    
-    quiz.addReferences(about, options, qdict, updater)
-    quiz.initGlobalHotkeys()
-    
-    sys.exit(app.exec_())

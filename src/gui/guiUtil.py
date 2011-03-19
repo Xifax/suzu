@@ -4,6 +4,8 @@ Created on Mar 2, 2011
 
 @author: Yadavito
 '''
+
+# external #
 from PySide.QtCore import QRect, QSize
 from PySide.QtGui import QRegion
 
