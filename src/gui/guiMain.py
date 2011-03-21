@@ -16,10 +16,11 @@ from settings.optionsBackend import Options
 from settings.constants import *
 from utilities.rtimer import RepeatTimer
 from utilities.stats import Stats
-from utilities.utils import BackgroundDownloader, GlobalHotkeyManager
-from gui.about import About
-from gui.guiOpt import OptionsDialog
-from gui.guiQuick import QuickDictionary
+from utilities.utils import GlobalHotkeyManager#, BackgroundDownloader 
+#from gui.about import About
+#from gui.guiOpt import OptionsDialog
+#from gui.guiQuick import QuickDictionary
+from gui.guiManualAdd import ManualAdd 
 from gui.guiUtil import roundCorners, unfillLayout
 from jdict.db import DictionaryLookup
 
@@ -288,7 +289,7 @@ class Quiz(QFrame):
 
         self.answered = QPushButton(u'')
         self.answered.hide()
-        
+                
         ###    layouts    ####
         self.layout_vertical = QVBoxLayout()        #main
         self.layout_horizontal = QHBoxLayout()      #buttons
@@ -324,7 +325,6 @@ class Quiz(QFrame):
         ### initializing ###
         self.initializeResources()
         
-        
         """Start!"""
         if self.options.isQuizStartingAtLaunch():
             self.waitUntilNextTimeslot()
@@ -336,6 +336,7 @@ class Quiz(QFrame):
             self.trayIcon.showMessage('Loading complete! (took ~' + str(self.loadingTime.seconds) + ' seconds) Standing by.', 'Quiz has not started yet! If you wish, you could start it manually or enable autostart by default.', 
                                       QSystemTrayIcon.MessageIcon.Information, 10000 )
             
+        self.setWindowIcon(QIcon(PATH_TO_RES + ICONS + 'suzu.png'))
         """Test calls here:"""
         ###    ...    ###
         #self.connect(self.hooker, SIGNAL('noQdict'), self.noQdict)
@@ -390,6 +391,9 @@ class Quiz(QFrame):
 #        self.hooker = GlobalHotkeyManager(toggleWidgetFlag(self.qdict), 'Q')
 #        self.hooker.setDaemon(True) #temporarily, should work using stop()
 #        self.hooker.start()
+
+        """Manual add dialog"""
+        self.manualAddDialog = ManualAdd(self.srs.db)
         
         time_end = datetime.now()
         self.loadingTime =  time_end - time_start
@@ -510,39 +514,62 @@ class Quiz(QFrame):
         self.srs.getNextItem()
               
         start = datetime.now()  #testing
-        example = self.srs.getCurrentExample().replace(self.srs.getWordFromExample(), u"<font color='blue'>" + self.srs.getWordFromExample() + u"</font>")
-        print datetime.now() - start    #testing
-        self.sentence.setText(example)
         
-        start = datetime.now()  #testing
-        readings = self.srs.getQuizVariants()
-        print datetime.now() - start    #testing
+        example = self.srs.getCurrentExample()
         
-        '''
-        changeFont = False
-        for item in readings:
-            if len(item) > 5 : changeFont = True
+        #NB: checking for no example case
+        if example is None:
+            self.manualAddDialog.setProblemKanji(self.srs.getCurrentItemKanji())
+            done = self.manualAddDialog.exec_()
             
-        if changeFont: self.setStyleSheet('QWidget { font-size: 11pt; }')
-        else:   self.setStyleSheet('QWidget { font-size: %spt; }' % self.options.getQuizFontSize())
-        '''
-        '''
-        if len(readings) == 4:                  #NB: HERE LIES THE GREAT ERROR
-            self.var_1st.setText(readings[0])
-            self.var_2nd.setText(readings[1])
-            self.var_3rd.setText(readings[2])
-            self.var_4th.setText(readings[3])
-        '''
-        
-        try:
-            for i in range(0, self.layout_horizontal.count()):
-                    if i > 3: break
-                    self.layout_horizontal.itemAt(i).widget().setText(u'')
-                    #self.layout_horizontal.itemAt(i).setStyleSheet('QPushButton { font-size: 11pt; }')
-                    self.layout_horizontal.itemAt(i).widget().setText(readings[i])
-        except:
-            print 'Not enough quiz variants'
-            #TODO: log this
+            if done == 0:
+                self.updateContent()
+            elif done == 1:
+                self.updateContent()
+            else:
+                pass
+            
+#            if self.manualAddDialog.addedExamples:
+#                self.updateContent()
+#            elif self.manualAddDialog.setInactive:
+#                self.updateContent()
+#            else:
+#                pass
+        else:
+            example = example.replace(self.srs.getWordFromExample(), u"<font color='blue'>" + self.srs.getWordFromExample() + u"</font>")
+            
+            print datetime.now() - start    #testing
+            self.sentence.setText(example)
+            
+            start = datetime.now()  #testing
+            readings = self.srs.getQuizVariants()
+            print datetime.now() - start    #testing
+            
+            '''
+            changeFont = False
+            for item in readings:
+                if len(item) > 5 : changeFont = True
+                
+            if changeFont: self.setStyleSheet('QWidget { font-size: 11pt; }')
+            else:   self.setStyleSheet('QWidget { font-size: %spt; }' % self.options.getQuizFontSize())
+            '''
+            '''
+            if len(readings) == 4:                  #NB: HERE LIES THE GREAT ERROR
+                self.var_1st.setText(readings[0])
+                self.var_2nd.setText(readings[1])
+                self.var_3rd.setText(readings[2])
+                self.var_4th.setText(readings[3])
+            '''
+            
+            try:
+                for i in range(0, self.layout_horizontal.count()):
+                        if i > 3: break
+                        self.layout_horizontal.itemAt(i).widget().setText(u'')
+                        #self.layout_horizontal.itemAt(i).setStyleSheet('QPushButton { font-size: 11pt; }')
+                        self.layout_horizontal.itemAt(i).widget().setText(readings[i])
+            except:
+                print 'Not enough quiz variants'
+                #TODO: log this
         
     def getReadyPostLayout(self):
         self.sentence.hide()
@@ -553,7 +580,7 @@ class Quiz(QFrame):
         self.labels = []
         
         #row, column, rows span, columns span, max columns
-        i = 0; j = 0; r = 1; c = 1; n = 16
+        i = 0; j = 0; r = 1; c = 1; n = 20
         for word in self.srs.parseCurrentExample():
             label = QLabel(word)
             label.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))

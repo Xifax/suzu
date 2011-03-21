@@ -96,7 +96,7 @@ class DBBackgroundUpdater:
         
     def addExamples(self, item, examples):
         '''Item is either kanji or word'''
-        
+        #TODO: try to add by kana, not just kanji
         if item is not None:
             for example in examples:
                 item.example.append(Example(sentence = example,translation = examples[example]))
@@ -228,7 +228,8 @@ class DBoMagic:
             
     def getExample(self, kanji):
         examples = kanji.example
-        return examples[randrange(0, len(examples))]
+        if len(examples) > 0: return examples[randrange(0, len(examples))]
+        else: return None
         
     #TODO: throw away unneeded implementation
     '''
@@ -476,6 +477,11 @@ class DBoMagic:
             else: i = i + 1
             
         return results
+    
+    def toggleActive(self, item):
+        item.active = not item.active
+        item.current_session = not item.current_session
+        session.commit()
     
     def updateActive(self, criteria, flag):
         lookup = Kanji.query.filter(Kanji.tags.like(u'%' + criteria + '%' )).all()

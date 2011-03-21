@@ -4,6 +4,7 @@ Created on Mar 19, 2011
 
 @author: Yadavito
 @version: 0.0.1
+@license: GPL v3
 @requires: Python 2.6.6
 @requires: PySide 1.0.0
 '''
@@ -68,6 +69,8 @@ Created on Mar 19, 2011
 ####################################
 
 # urgent
+# TODO: control case when there's no examples at all
+# TODO: implement jisho kana search for rare kanji
 # LATER: change button font size depending on number of characters (< 5)
 # TODO: add additional info dialog, briefly describing each kanji in compound
 
@@ -88,7 +91,7 @@ Created on Mar 19, 2011
 import sys
 
 # external packages #
-from PySide.QtGui import QApplication, QIcon
+from PySide.QtGui import QApplication
 
 # own packages #
 from gui.guiMain import Quiz
@@ -108,7 +111,6 @@ if __name__ == '__main__':
     
     quiz = Quiz()
     if quiz.options.isPlastique():  app.setStyle('plastique')
-    quiz.setWindowIcon(QIcon('../res/icons/suzu.png'))
     
     about = About()
     options = OptionsDialog(quiz.srs.db, quiz.options)

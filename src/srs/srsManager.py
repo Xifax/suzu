@@ -56,12 +56,15 @@ class srsScheduler:
             #NB: how about some threading and queues?
             self.db.addExamplesForKanji(self.currentItem, JishoClient.getExamples(self.currentItem.character))
 
-        self.currentExample = self.db.getExample(self.currentItem) 
-        ## adding corresponding word to db
-        #self.db.addWordToDb(self.currentItem, self.getWordFromExample())
-        self.db.addWordToDbAndLinkToExample(self.currentItem, self.getWordFromExample(), self.currentExample)
-        
-        return self.currentExample.sentence
+        self.currentExample = self.db.getExample(self.currentItem)
+        if self.currentExample is not None:
+            ## adding corresponding word to db
+            #self.db.addWordToDb(self.currentItem, self.getWordFromExample())
+            self.db.addWordToDbAndLinkToExample(self.currentItem, self.getWordFromExample(), self.currentExample)
+            
+            return self.currentExample.sentence
+        else:
+            return self.currentExample
     
     def parseCurrentExample(self):
         return MecabTool.parseToWordsOnly(self.currentExample.sentence)
