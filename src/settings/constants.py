@@ -25,6 +25,11 @@ I_WIDTH = 220
 I_HEIGHT = D_HEIGHT
 I_INDENT = 2
 
+# kanji info dialog
+K_WIDTH = 340
+K_HEIGHT = D_HEIGHT
+K_INDENT = 2
+
 # status dialog
 S_WIDTH = D_WIDTH
 S_HEIGHT = 30

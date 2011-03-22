@@ -46,6 +46,7 @@ class Filter(QObject):
             
             object.parent().info.hide()
             object.parent().allInfo.hide()
+            object.parent().kanjiInfo.hide()
 
             desktop = QApplication.desktop().screenGeometry()
             object.parent().info.setGeometry(QRect(desktop.width() - H_INDENT - I_WIDTH - I_INDENT, desktop.height() - V_INDENT, I_WIDTH, I_HEIGHT))
@@ -89,11 +90,56 @@ class Filter(QObject):
             object.parent().info.show()
 
         if event.type() == QEvent.MouseButtonPress:
+            # item context menu #
             if event.button() == Qt.MiddleButton:
+                object.parent().info.hide()
+                object.parent().allInfo.hide()
+                object.parent().kanjiInfo.hide()
                 print 'Middle'   #TODO: add distinction between actions     
+                
+            # kanji info #
+            if event.button() == Qt.RightButton:
+                #if object.parent().info.isVisible() and object.parent().kanjiInfo.isHidden():  
+                    
+                object.parent().info.hide()
+                object.parent().allInfo.hide()
+                
+                object.parent().kanjiInfo.info.setText(u'')
+                
+                script = scripts.script_boundaries(object.text())
+                #kanji_list = []
+                resulting_info = u''
+    
+                for cluster in script:
+                    if scripts.script_type(cluster) == scripts.Script.Kanji:
+                        for kanji in cluster:
+                            try:
+                                lookup = object.parent().kjd[kanji]
+                                kun = lookup.kun_readings; on = lookup.on_readings; gloss = lookup.gloss
+                                
+                                #resulting_info += '<b>(' + kanji + ')</b>\t'
+                                resulting_info += "<font style='font-family: " + Fonts.HiragiNoMyoutyouProW3 + "; font-size: 18pt'>(" + kanji + ")</font>\t"
+                            
+                                if len(kun) > 0:
+                                    resulting_info += '<b>kun: </b>' + ', '.join(kun) + '\t'
+                                if len(on) > 0:
+                                    resulting_info += '<b>on:</b>' + ', '.join(on) + '<br/>'
+                                    #resulting_info += '<b>on: </b>' + ', '.join(on) + '\t'
+                                if len(gloss) > 0:
+                                    resulting_info += "<font style='font-family: Calibri; font-size: 12pt'>" + ", ".join(gloss) + "</font><br/>"
+                            except:
+                                components += kanji + '<br/>'
+                            #kanji_list.append(kanji)
+                
+                if resulting_info != '':  object.parent().kanjiInfo.info.setText(resulting_info.rstrip('<br/>'))
+                else: object.parent().kanjiInfo.info.setText(u'No such kanji in kanjidic!')
+                object.parent().kanjiInfo.show()
+                
+            # translation and strokes info #
             if event.button() == Qt.LeftButton:
-                print 'Left'   #TODO: add distinction between actions
-            if object.parent().info.isVisible() and object.parent().allInfo.isHidden():  
+                
+                #if object.parent().info.isVisible() and object.parent().allInfo.isHidden():  
+                object.parent().kanjiInfo.hide()
                 object.parent().info.hide()
                               
                 #object.parent().unfill(object.parent().allInfo.layout)
@@ -273,6 +319,13 @@ class Quiz(QFrame):
         self.allInfo.setLayout(self.allInfo.layout)
         #the rest is (should be) generated on the fly
         
+        """Kanji info"""
+        self.kanjiInfo = QFrame()
+        self.kanjiInfo.layout = QVBoxLayout()
+        self.kanjiInfo.info = QLabel(u'')
+        self.kanjiInfo.layout.addWidget(self.kanjiInfo.info)
+        self.kanjiInfo.setLayout(self.kanjiInfo.layout)
+        
         """Global Flags"""
         #self.correct = False
         
@@ -441,6 +494,16 @@ class Quiz(QFrame):
         self.status.setMask(roundCorners(self.status.rect(),5))
         #self.info.setMask(roundCorners(self.info.rect(),5))
         #self.allInfo.setMask(roundCorners(self.allInfo.rect(),5))
+        
+        """Kanji info"""
+        self.kanjiInfo.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.kanjiInfo.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
+        self.kanjiInfo.setGeometry(QRect(desktop.width() - H_INDENT - K_WIDTH - K_INDENT, desktop.height() - V_INDENT, K_WIDTH, K_HEIGHT))
+        
+        self.kanjiInfo.setStyleSheet("QWidget { background-color: rgb(255, 255, 255); }")
+        
+#        self.setMask(roundCorners(self.rect(),5))
+#        self.status.setMask(roundCorners(self.status.rect(),5))
 
     def initializeComponents(self):
         self.countdown.setMaximumHeight(6)
@@ -479,6 +542,11 @@ class Quiz(QFrame):
         
         self.info.reading.setStyleSheet("QLabel { color: rgb(155, 155, 155); }")
         self.info.components.setStyleSheet("QLabel { color: rgb(100, 100, 100); }")
+        
+        self.kanjiInfo.info.setFont(QFont(Fonts.MSMyoutyou, 14.5))
+        self.kanjiInfo.info.setAlignment(Qt.AlignCenter)
+        self.kanjiInfo.info.setWordWrap(True)
+        self.kanjiInfo.layout.setMargin(0)
 
 
 ####################################
@@ -910,6 +978,7 @@ class Quiz(QFrame):
         self.hide()
         self.status.hide()
         self.allInfo.hide()
+        self.kanjiInfo.hide()
         self.trayIcon.showMessage('Shutting down...', 'Saving session', QSystemTrayIcon.MessageIcon.Information, 20000 )
         #self.startTrayLoading()
         

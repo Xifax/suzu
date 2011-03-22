@@ -249,6 +249,7 @@ class QuickDictionary(QFrame):
                             kun = lookup.kun_readings; on = lookup.on_readings; gloss = lookup.gloss
                             
                             components += '<b>(' + kanji + ')</b>\t'
+                            #components += '(' + kanji + ')\t'
                             
                             if len(kun) > 0:
                                 components += '<b>kun:</b>' + ', '.join(kun) + '\t'
