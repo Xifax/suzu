@@ -53,6 +53,7 @@ Created on Mar 19, 2011
 # MeCab parser
 # Kanjidic2
 # Jmdict
+# Edict
 
 ####################################
 #        Aptana built-ins:         #
@@ -63,14 +64,20 @@ Created on Mar 19, 2011
 # jcconv
 # enum
 # pkg_resources
+# _MeCab
 
 ####################################
 #    here goes global TODO list    #
 ####################################
 
+# design
+# TODO: kanji/word add notification
+# TODO: prettify 'add' dialog
+# TODO: show qdict found items count
+
 # urgent
+# TODO: fix 'pause time'
 # LATER: change button font size depending on number of characters (< 5)
-# TODO: add additional info dialog, briefly describing each kanji in compound
 
 # concept
 # TODO: implement 'similar kanji' system, based on comparing number of similar rads in RadDict

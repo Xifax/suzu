@@ -393,6 +393,7 @@ class Quiz(QFrame):
         """Test calls here:"""
         ###    ...    ###
         #self.connect(self.hooker, SIGNAL('noQdict'), self.noQdict)
+        self.gem = self.saveGeometry()
 
     def noQdict(self):
         self.showSessionMessage('Nope, cannot show quick dictionary during actual quiz.')
@@ -648,7 +649,7 @@ class Quiz(QFrame):
         self.labels = []
         
         #row, column, rows span, columns span, max columns
-        i = 0; j = 0; r = 1; c = 1; n = 20
+        i = 0; j = 0; r = 1; c = 1; n = 22
         for word in self.srs.parseCurrentExample():
             label = QLabel(word)
             label.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))
@@ -931,6 +932,8 @@ class Quiz(QFrame):
             self.updateContent()
             self.setButtonsActions()
             
+            #self.restoreGeometry(self.gem)
+            
             self.show()
             self.setWindowOpacity(0)
             self.fade()
@@ -1011,3 +1014,6 @@ class Quiz(QFrame):
         self.hooker = GlobalHotkeyManager(toggleWidgetFlag , 'Q')
         self.hooker.setDaemon(True)
         self.hooker.start()
+        
+    def showEvent(self, event):
+        self.restoreGeometry(self.gem)

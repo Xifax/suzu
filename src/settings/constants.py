@@ -26,7 +26,7 @@ I_HEIGHT = D_HEIGHT
 I_INDENT = 2
 
 # kanji info dialog
-K_WIDTH = 340
+K_WIDTH = 400
 K_HEIGHT = D_HEIGHT
 K_INDENT = 2
 

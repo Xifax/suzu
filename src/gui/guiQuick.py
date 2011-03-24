@@ -28,6 +28,9 @@ class QuickDictionary(QFrame):
         self.db = db
         self.options = options
         
+        # geometry
+        self.gem = None
+        
         # items info & menu
         self.itemsMenu = QFrame()
         self.itemsMenu.layout = QVBoxLayout()
@@ -207,13 +210,6 @@ class QuickDictionary(QFrame):
         self.itemsMenu.addAllKanjiToStudying.clicked.connect(self.addKanjiToStudy)
         self.itemsMenu.addEverything.clicked.connect(self.addAllToStudy)
 
-    def resizeEvent(self, event):
-        self.updateItemMenuSize()
-        
-    def updateItemMenuSize(self):
-        if not self.itemsMenu.fixSize.isChecked():
-            desktop = QApplication.desktop().screenGeometry()
-            self.itemsMenu.setGeometry(QRect(desktop.width() - self.width() - Q_INDENT - Q_SPACE, desktop.height() - self.height() - Q_VINDENT + 6, Q_INDENT - 2, self.height()))
         
     def resultsClicked(self):
         self.lookupResults.clearSelection()
@@ -462,40 +458,17 @@ class QuickDictionary(QFrame):
     def updateLimit(self):
         if self.lookup.text() != u'':   self.updateLookupResults(self.lookup.text())
 
-#app = QApplication(sys.argv)
-##app.setStyle('plastique')
-#
-##stubs
-#srsStub = ()
-##from db import DictionaryLookup
-#from db import *
-#qdict = DictionaryLookup()
-##qdict.loadJmdictFromDumpRegex() #for test purposes
-#'''
-#test = qdict.lookupItemByReading(u'いやいや')
-#test = qdict.looseLookupByReading(u'いやいや')
-#test = qdict.looseLookupByReadingJoin(u'か')
-#'''
-#from pkg_resources import resource_filename #por qua thou err like t'ese?
-#from cjktools.resources import auto_format
-#from cjktools.resources import kanjidic
-#
-#from optionsBackend import Options
-#
-#options = Options()
-#
-#edict_file = resource_filename('cjktools_data', 'dict/je_edict')
-#edict = auto_format.load_dictionary(edict_file)
-#
-#kdict = kanjidic.Kanjidic()
-#
-#from srsManager import srsScheduler
-#
-#srs = srsScheduler()
-#srs.initializeCurrentSession('kanji', 300)
-#
-#qd = QuickDictionary(qdict, edict, kdict, srs.db, options)
-#qd.showQDict = True
-#qd.show()
-#
-#sys.exit(app.exec_())
+    #-------------- events ------------------#
+    def hideEvent(self, event):
+        self.gem = self.saveGeometry()
+        
+    def showEvent(self, event):
+        self.restoreGeometry(self.gem)
+
+    def resizeEvent(self, event):
+        self.updateItemMenuSize()
+        
+    def updateItemMenuSize(self):
+        if not self.itemsMenu.fixSize.isChecked():
+            desktop = QApplication.desktop().screenGeometry()
+            self.itemsMenu.setGeometry(QRect(desktop.width() - self.width() - Q_INDENT - Q_SPACE, desktop.height() - self.height() - Q_VINDENT + 6, Q_INDENT - 2, self.height()))
