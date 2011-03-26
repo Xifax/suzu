@@ -26,7 +26,7 @@ I_HEIGHT = D_HEIGHT
 I_INDENT = 2
 
 # kanji info dialog
-K_WIDTH = 400
+K_WIDTH = 500
 K_HEIGHT = D_HEIGHT
 K_INDENT = 2
 
@@ -54,6 +54,10 @@ Q_HEIGTH = 305
 Q_INDENT = 400
 Q_VINDENT = 56
 Q_SPACE = 30
+
+# tools 
+T_WIDTH = 200
+T_HEIGHT = 300
 
 ###########################
 ### paths and resources ###
@@ -98,7 +102,8 @@ KANA_TABLE  =  [u'あ', u'い', u'う', u'え', u'お',
                 u'ば', u'び', u'ぶ', u'べ', u'ぼ', 
                 u'ぱ', u'ぴ', u'ぷ', u'ぺ', u'ぽ' ]
 
-BUTTON_KANA_MAX = 6     #as of now - not in use
+BUTTON_KANA_MAX = 5
+TRANSLATION_CHARS_LIMIT = 90
 
 ###########################
 ###      quiz modes     ###
@@ -115,3 +120,7 @@ def modeByKey(key):
                 }[key]
     except KeyError:
         return modes.all
+    
+###########################
+###       web urls      ###
+###########################

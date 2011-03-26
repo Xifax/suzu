@@ -77,7 +77,6 @@ Created on Mar 19, 2011
 
 # urgent
 # TODO: fix 'pause time'
-# LATER: change button font size depending on number of characters (< 5)
 
 # concept
 # TODO: implement 'similar kanji' system, based on comparing number of similar rads in RadDict

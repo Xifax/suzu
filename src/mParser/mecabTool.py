@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
+# external #
 import MeCab
+# own #
+from utilities.log import log
 
 class MecabTool:
     @staticmethod
@@ -19,7 +22,10 @@ class MecabTool:
             infos['dform'] = array[4]
             infos['reading'] = array[5]
             infos['nform'] = array[6]                # non-inflected form (self)
-            infos['pronunciation'] = array[7]       #NB: somehow, error hath happened here
+            try:
+                infos['pronunciation'] = array[7]       #NB: somehow, error hath happened here
+            except IndexError, e:
+                log.debug(e); print e
             if not infos['type'] == "BOS/EOS":
                 word_array.append(infos)
             mnode = mnode.next

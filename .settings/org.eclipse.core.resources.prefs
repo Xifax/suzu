@@ -1,10 +1,11 @@
-#Mon Mar 21 13:27:07 MSK 2011
+#Sat Mar 26 14:25:52 MSK 2011
 eclipse.preferences.version=1
 encoding//src/gui/about.py=utf-8
 encoding//src/gui/guiMain.py=utf-8
 encoding//src/gui/guiManualAdd.py=utf-8
 encoding//src/gui/guiOpt.py=utf-8
 encoding//src/gui/guiQuick.py=utf-8
+encoding//src/gui/guiTools.py=utf-8
 encoding//src/gui/guiUtil.py=utf-8
 encoding//src/install.py=utf-8
 encoding//src/jdict/db.py=utf-8

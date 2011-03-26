@@ -17,12 +17,10 @@ from settings.constants import *
 from utilities.rtimer import RepeatTimer
 from utilities.stats import Stats
 from utilities.utils import GlobalHotkeyManager#, BackgroundDownloader 
-#from gui.about import About
-#from gui.guiOpt import OptionsDialog
-#from gui.guiQuick import QuickDictionary
 from gui.guiManualAdd import ManualAdd 
 from gui.guiUtil import roundCorners, unfillLayout
 from jdict.db import DictionaryLookup
+from utilities.log import log
 
 # external #
 from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent,QByteArray
@@ -548,6 +546,9 @@ class Quiz(QFrame):
         self.kanjiInfo.info.setAlignment(Qt.AlignCenter)
         self.kanjiInfo.info.setWordWrap(True)
         self.kanjiInfo.layout.setMargin(0)
+        #NB: ...
+        self.answered.setMaximumWidth(D_WIDTH)
+        self.answered.setFont(QFont('Calibri', 11))
 
 
 ####################################
@@ -597,13 +598,6 @@ class Quiz(QFrame):
                 self.updateContent()
             else:
                 pass
-            
-#            if self.manualAddDialog.addedExamples:
-#                self.updateContent()
-#            elif self.manualAddDialog.setInactive:
-#                self.updateContent()
-#            else:
-#                pass
         else:
             example = example.replace(self.srs.getWordFromExample(), u"<font color='blue'>" + self.srs.getWordFromExample() + u"</font>")
             
@@ -614,31 +608,27 @@ class Quiz(QFrame):
             readings = self.srs.getQuizVariants()
             print datetime.now() - start    #testing
             
-            '''
+
             changeFont = False
             for item in readings:
-                if len(item) > 5 : changeFont = True
+                if len(item) > BUTTON_KANA_MAX : changeFont = True
                 
-            if changeFont: self.setStyleSheet('QWidget { font-size: 11pt; }')
-            else:   self.setStyleSheet('QWidget { font-size: %spt; }' % self.options.getQuizFontSize())
-            '''
-            '''
-            if len(readings) == 4:                  #NB: HERE LIES THE GREAT ERROR
-                self.var_1st.setText(readings[0])
-                self.var_2nd.setText(readings[1])
-                self.var_3rd.setText(readings[2])
-                self.var_4th.setText(readings[3])
-            '''
-            
+#            if changeFont: self.setStyleSheet('QPushButton { font-size: 11pt; }')
+#            else:   self.setStyleSheet('QPushButton { font-size: %spt; }' % self.options.getQuizFontSize())
+
             try:
                 for i in range(0, self.layout_horizontal.count()):
                         if i > 3: break
                         self.layout_horizontal.itemAt(i).widget().setText(u'')
-                        #self.layout_horizontal.itemAt(i).setStyleSheet('QPushButton { font-size: 11pt; }')
+                        
+                        if changeFont:
+                            self.layout_horizontal.itemAt(i).widget().setStyleSheet('QPushButton { font-size: 11pt; }')
+                        else:
+                            self.layout_horizontal.itemAt(i).widget().setStyleSheet('QPushButton { font-size: %spt; }' % self.options.getQuizFontSize())
+                            
                         self.layout_horizontal.itemAt(i).widget().setText(readings[i])
             except:
-                print 'Not enough quiz variants'
-                #TODO: log this
+                log.debug(u'Not enough quiz variants for ' + self.srs.getCurrentItem())
         
     def getReadyPostLayout(self):
         self.sentence.hide()
@@ -817,22 +807,14 @@ class Quiz(QFrame):
         self.getReadyPostLayout()
         
     def correctAnswer(self):
-        '''
-        self.stats.musingsStopped()
-        self.stats.postQuizStarted()
-        
-        self.stopCountdown()
-        self.hideButtonsQuiz()
-        
-        self.getReadyPostLayout()
-        '''
         self.postAnswerActions()
         
         self.srs.answeredCorrect()
         self.stats.quizAnsweredCorrect()
-        #self.answered.setText(u"<font='Cambria'>" + self.srs.getCurrentSentenceTranslation() + "</font>")
+        
         self.answered.setText(self.srs.getCurrentSentenceTranslation())
-        self.answered.setFont(QFont('Calibri', 11))
+        self.checkTranslationSize()
+        
         self.showSessionMessage(u'<font color=green>Correct: ' + self.srs.getCorrectAnswer() + '</font>\t|\tNext quiz: ' + self.srs.getNextQuizTime() 
                                 + '\t|\t<font color=' + self.srs.getLeitnerGradeAndColor()['color'] +  '>Grade: ' + self.srs.getLeitnerGradeAndColor()['grade'] 
                                 + ' (' + self.srs.getLeitnerGradeAndColor()['name'] + ')<font>')
@@ -841,24 +823,14 @@ class Quiz(QFrame):
         #self.setFocus()
         
     def wrongAnswer(self):
-        '''
-        self.stats.musingsStopped()
-        self.stats.postQuizStarted()
-        
-        self.stopCountdown()
-        self.hideButtonsQuiz()
-        
-        self.getReadyPostLayout()
-        '''
         self.postAnswerActions()
         
         self.srs.answeredWrong()
         self.stats.quizAnsweredWrong()
         
         self.answered.setText(self.srs.getCurrentSentenceTranslation())
-        self.answered.setFont(QFont('Calibri', 11))
-        #self.showSessionMessage(u"Wrong! Should be: <font style='font-family:" + Fonts.MSMyoutyou + "'>" 
-                                #+ self.srs.getCorrectAnswer() + "</font> - Next quiz: " + self.srs.getNextQuizTime())
+        self.checkTranslationSize()
+        
         self.showSessionMessage(u'<font color=tomato>Wrong! Should be: '+ self.srs.getCorrectAnswer() + '</font>\t|\tNext quiz: ' + self.srs.getNextQuizTime()
                                 + '\t|\t<font color=' + self.srs.getLeitnerGradeAndColor()['color'] +  '>Grade: ' + self.srs.getLeitnerGradeAndColor()['grade'] 
                                 + ' (' + self.srs.getLeitnerGradeAndColor()['name'] + ')<font>')
@@ -867,18 +839,24 @@ class Quiz(QFrame):
         self.stats.musingsStopped()
         self.stats.postQuizStarted()
         
-        QTimer.singleShot(50, self.hideButtonsQuiz)     #NB: slight artificial lag to prevent recursive repaint crush, when mouse is suddenly over appearing button
+        QTimer.singleShot(50, self.hideButtonsQuiz)     #NB: slight artificial lag to prevent recursive repaint crush (when mouse is suddenly over repainted button)
         self.getReadyPostLayout()
         
         self.srs.answeredWrong()
         self.stats.quizAnsweredWrong()
 
-        #self.showSessionMessage(u'Time is out! Correct answer is:' + self.srs.getCorrectAnswer())
-        self.answered.setFont(QFont('Calibri', 11))
         self.answered.setText(self.srs.getCurrentSentenceTranslation())
+        self.checkTranslationSize()
+        
         self.showSessionMessage(u'<font color=tomato>Timeout! Should be: ' + self.srs.getCorrectAnswer() + '</font>\t|\tNext quiz: ' + self.srs.getNextQuizTime()
                                 + '\t|\t<font color=' + self.srs.getLeitnerGradeAndColor()['color'] +  '>Grade: ' + self.srs.getLeitnerGradeAndColor()['grade'] 
-                                + ' (' + self.srs.getLeitnerGradeAndColor()['name'] + ')<font>')        
+                                + ' (' + self.srs.getLeitnerGradeAndColor()['name'] + ')<font>')    
+        
+    def checkTranslationSize(self):
+        if len(self.answered.text()) > TRANSLATION_CHARS_LIMIT:
+            self.answered.setStyleSheet('QPushButton { font-size: 8pt; }')
+        else:
+            self.answered.setStyleSheet('QPushButton { font-size: 11pt; }')
     
     def hideQuizAndWaitForNext(self):
         self.stats.postQuizEnded()
