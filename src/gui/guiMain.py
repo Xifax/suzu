@@ -157,7 +157,8 @@ class Filter(QObject):
                 # kanji strokes
                 if len(kanjiList) > 0:
                     
-                    infile = open('../res/kanji/KANJI-MANIFEST-UNICODE-HEX', 'r')
+                    #infile = open('../res/kanji/KANJI-MANIFEST-UNICODE-HEX', 'r')
+                    infile = open(PATH_TO_RES + STROKES + KANJI_MANIFEST, 'r')
                     text = infile.read()
                     infile.close()
                     
@@ -169,10 +170,11 @@ class Filter(QObject):
                             gif.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)        
                             gif.setAlignment(Qt.AlignCenter) 
     
-                            movie = QMovie('../res/kanji/' + kanji.encode('utf-8').encode('hex') + '.gif', QByteArray(), self) 
+                            #movie = QMovie('../res/kanji/' + kanji.encode('utf-8').encode('hex') + '.gif', QByteArray(), self) 
+                            movie = QMovie(PATH_TO_RES + STROKES + kanji.encode('utf-8').encode('hex') + '.gif', QByteArray(), self) 
                             movie.setCacheMode(QMovie.CacheAll) 
                             movie.setSpeed(150) 
-                            
+
                             gif.setMovie(movie)
                             object.parent().allInfo.layout.addWidget(gif, i, j);   j = j + 1
                             movie.start()
