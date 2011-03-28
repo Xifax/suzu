@@ -30,6 +30,7 @@ from pkg_resources import resource_filename
 from cjktools.resources import auto_format
 from cjktools.resources import kanjidic
 from cjktools import scripts
+from utilities import rtimer
 
 ##########################################
 # Event filters/handlers and key hookers #
@@ -367,6 +368,10 @@ class Quiz(QFrame):
         self.gifLoading = QMovie('../res/cube.gif')
         self.gifLoading.frameChanged.connect(self.updateTrayIcon)
         
+        ### initializing ###
+        self.initializeResources()
+        
+        ### timers ###
         self.nextQuizTimer = QTimer()
         self.nextQuizTimer.setSingleShot(True)
         self.nextQuizTimer.timeout.connect(self.showQuiz)
@@ -375,8 +380,9 @@ class Quiz(QFrame):
         self.countdownTimer.setSingleShot(True)
         self.countdownTimer.timeout.connect(self.timeIsOut)
         
-        ### initializing ###
-        self.initializeResources()
+        self.trayUpdater = None
+        #self.trayUpdater = RepeatTimer(1.0, self.updateTrayTooltip, self.options.getRepetitionInterval() * 60)
+        self.remaining = 0
         
         """Start!"""
         if self.options.isQuizStartingAtLaunch():
@@ -394,10 +400,23 @@ class Quiz(QFrame):
         ###    ...    ###
         #self.connect(self.hooker, SIGNAL('noQdict'), self.noQdict)
         self.gem = self.saveGeometry()
+        
+    def startUpdatingTrayTooltip(self):
+        self.remaining = self.nextQuizTimer.interval()
+        
+        if self.trayUpdater is not None and self.trayUpdater.isAlive():
+            self.trayUpdater.stop()
+            
+        self.trayUpdater = RepeatTimer(1.0, self.updateTrayTooltip, self.options.getRepetitionInterval() * 60)
+        self.trayUpdater.start()
+        
+    def updateTrayTooltip(self):
+        self.remaining -= UPDATE_FREQ
+        self.trayIcon.setToolTip('Next quiz in ' + (str(self.remaining/UPDATE_FREQ) + ' seconds'))
 
     def noQdict(self):
         self.showSessionMessage('Nope, cannot show quick dictionary during actual quiz.')
-
+        
 ####################################
 #    Initialization procedures     #
 ####################################
@@ -623,6 +642,7 @@ class Quiz(QFrame):
                         if i > 3: break
                         self.layout_horizontal.itemAt(i).widget().setText(u'')
                         
+                        #TODO: check if font is reset
                         if changeFont:
                             self.layout_horizontal.itemAt(i).widget().setStyleSheet('QPushButton { font-size: 11pt; }')
                         else:
@@ -691,6 +711,7 @@ class Quiz(QFrame):
     def waitUntilNextTimeslot(self):
         #if self.nextQuizTimer.isActive():   self.nextQuizTimer.stop()
         self.nextQuizTimer.start(self.options.getRepetitionInterval() * 60 * 1000)  #options are in minutes    NB: how do neatly I convert minutes to ms?
+        self.startUpdatingTrayTooltip()
         
     def beginCountdown(self):
         self.trayIcon.setToolTip('Quiz in progress!')
@@ -970,9 +991,11 @@ class Quiz(QFrame):
         if self.nextQuizTimer.isActive():
                 self.nextQuizTimer.stop()
         if self.progressTimer != () and self.progressTimer.isAlive():
-                self.progressTimer.cancel()      
+                self.progressTimer.cancel()
+        if self.trayUpdater is not None and self.trayUpdater.isAlive() :
+                self.trayUpdater.stop()     
             
-        self.srs.endCurrentSession()
+        self.srs.endCurrentSession(self.stats)
         self.trayIcon.hide()
 
         self.hooker.stop()

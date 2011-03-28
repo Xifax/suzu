@@ -6,7 +6,7 @@ Created on Feb 12, 2011
 '''
 
 # internal #
-from datetime import datetime
+from datetime import datetime, date
 from itertools import permutations, repeat
 from random import shuffle, sample, randrange
 import os.path, pickle, re
@@ -15,12 +15,12 @@ from settings.constants import *
 from srs.leitner import Leitner
 
 # external #
-from elixir import Entity, Field, Unicode, Integer, TIMESTAMP, ManyToMany, \
+from elixir import Entity, Field, Unicode, Integer, DATE, TIMESTAMP, ManyToMany, \
     metadata, session, create_all, setup_all, BOOLEAN#, cleanup_all
 from sqlalchemy import asc, and_, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.sqlsoup import SqlSoup
-#from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.exc import NoResultFound
 from jcconv import hira2kata
 
 def removeDuplicates(list):
@@ -38,9 +38,14 @@ class redict(dict):
                 yield dict.__getitem__(self, i)
 
 class Session(Entity):
-    date = Field(TIMESTAMP)
-    items = Field(Integer)
-    time = Field(Integer)
+    date = Field(DATE)
+    items_correct = Field(Integer)
+    items_wrong = Field(Integer)
+    time_running = Field(Integer)
+    time_active = Field(Integer)
+    time_paused = Field(Integer)
+    
+    times_launched = Field(Integer)
 
 class Kanji(Entity):
     character = Field(Unicode(1))
@@ -96,7 +101,6 @@ class DBBackgroundUpdater:
         
     def addExamples(self, item, examples):
         '''Item is either kanji or word'''
-        #TODO: try to add by kana, not just kanji
         if item is not None:
             for example in examples:
                 item.example.append(Example(sentence = example,translation = examples[example]))
@@ -163,8 +167,29 @@ class DBoMagic:
     def endCurrentSesion(self):
         for kanji in Kanji.query.all():
             kanji.current_session = False
+            kanji.wrong_in_current_session = 0
         for word in Word.query.all():
             word.current_session = False    
+            word.wrong_in_current_session = 0
+        
+        session.commit()
+        
+    def saveSessionStats(self, stats):
+        try:
+            current_session = Session.query.filter_by(date = date.today()).one()
+#            current_session = Session.query.filter_by(date = date.today()).first()
+       
+            current_session.items_correct += stats.answeredCorrect
+            current_session.items_wrong += (stats.totalItemSeen - stats.answeredCorrect)
+            current_session.time_running += (datetime.now() - stats.startedQuiz).seconds
+            current_session.time_active +=  stats.totalQuizActiveTime.seconds
+            current_session.time_paused +=  stats.totalPauseTime.seconds
+            
+            current_session.times_launched += 1
+        except NoResultFound:
+            Session(date = date.today(), items_correct = stats.answeredCorrect, items_wrong = (stats.totalItemSeen - stats.answeredCorrect),
+                    time_running = (datetime.now() - stats.startedQuiz).seconds, time_active = stats.totalQuizActiveTime.seconds, time_paused = stats.totalPauseTime.seconds,
+                    times_launched = 1)
         
         session.commit()
 
@@ -833,134 +858,4 @@ class DictionaryLookup:
                 result.append(item.k_ele_value)
             
         return removeDuplicates(result)
-
-#dlookup = DictionaryLookup()
-##dlookup.joinTables()
-#start = datetime.now()
-##dlookup.dumpJmdictToFileMulilang(dumpJmdictToFile(['eng','rus'])
-##dlookup.dumpJmdictToFile()
-#dlookup.dumpJmdictToFileWithRegex()
-##dlookup.loadJmdictFromDump()
-##dlookup.loadJmdictFromDumpRegex()
-#print datetime.now() - start
-##start = datetime.now()
-##test_list = [u'かれ',u'そら',u'くれぐれも', u'か']
-##res = dlookup.dictionary[u'かんじ']
-##res = dlookup.dictionary.get(u'かんじ')
-##for item in dlookup.dictionary[u'かんじ']:
-##    print item
-##for list in dlookup.dictionary[u'か.*']:
-#
-##for dc in dlookup.dictionaryR[u'か.*']:
-##for dc in dlookup.dictionaryR[u'か.*']:
-##    for key in dc.keys():
-##        print key, ' '.join(dc[key])
-##for list in dlookup.dictionaryR[u'か']:
-##   for item in list:
-##       print item['word'], item['sense']
-##print ' '.join(res)
-#print datetime.now() - start
-#
-#start = datetime.now()
-#for item in dlookup.dictionary[u'か']:
-   #print item['word'], item['sense']
-#res =  item in dlookup.dictionary[u'か']
-#print datetime.now() - start
-
-#===============================================================================
-# for i in dict[r'.*!']:
-#     
-# for i in dict[r't.*']:
-#
-# for i in dict[r't$']:	<- exact 't'
-#
-# for i in dict[r'^t']:
-#===============================================================================
     
-'''
-db = DBoMagic()
-db.setupDB()
-#db.initializeCurrentSession('kanji', 300)
-#count = db.countTotalItemsInDb()
-res = db.findSimilarReading(u'や')
-check = db.addItemsToDb(1)
-'''
-'''
-res = dlookup.lookupItemByReading(u'かれ')
-print ' '.join(res)
-res = dlookup.lookupItemByReading(u'漢字')
-print ' '.join(res)
-res = dlookup.lookupItemByReading(u'かんじ')
-print ' '.join(res)
-res = dlookup.lookupItemByReading(u'おん')
-print ' '.join(res)
-res = dlookup.lookupItemByReading(u'くれぐれも')
-print ' '.join(res)
-res = dlookup.lookupItemByReading(u'みられる')
-print ' '.join(res)
-res = dlookup.lookupItemByReading(u'あそんだ')
-print ' '.join(res)
-'''
-
-'''
-start = datetime.now()
-#res = dlookup.lookupItemTranslationJoin(u'彼')
-#res = dlookup.lookupItemByReading(u'かんじ')
-#res = dlookup.looseLookupByReadingJoin(u'こんせんと')
-#res = dlookup.lookupAllByReading(u'かんじ')
-#res = dlookup.lookupTranslationByReadingReturnAll(u'か')
-res = dlookup.lookupTranslationByReadingReturnAll(u'か')
-#res = dlookup.lookupTranslationByReadingJoin(u'そら')
-#kana = u'そら'
-#word = dlookup.lookupItemByReading(kana)
-#res = dlookup.lookupTranslationByReadingAndWordJoin(kana, word[0])
-#res = dlookup.lookupTranslationByReadingAndWordJoin(kana, kana)
-#res = dlookup.lookupItemTranslationJoin(u'そら')
-'''
-'''
-res = dlookup.lookupAllByReading(u'そら')
-#print ' '.join(res)
-for item in res:
-    print item, ' '.join(res[item]['sense']), ' '.join(res[item]['kana'])
-    '''
-#print datetime.now() - start
-
-'''
-start = datetime.now()
-res = dlookup.lookupItemTranslation(u'彼')
-print ' '.join(res)
-print datetime.now() - start
-'''
-'''
-start = datetime.now()
-res = dlookup.lookupItemByReading(u'し')
-print datetime.now() - start
-print ' '.join(res)
-'''
-#start = datetime.now()
-#res = dlookup.lookupItemByReadingJoin(u'かんじ')
-#print ' '.join(res)
-#print datetime.now() - start
-#print ' '.join(res)
-
-
-'''
-start = datetime.now()
-res = dlookup.lookupReadingsByItem(u'空')
-print datetime.now() - start
-print ' '.join(res)
-'''
-'''
-res = dlookup.lookupReadingsByItem(u'繋がる')
-print ' '.join(res)
-'''
-
-'''
-#start = datetime.now()
-#res = dlookup.lookupItemTranslation(u'手')
-#res = dlookup.lookupItemTranslation(u'軈て')
-#res = dlookup.lookupItemTranslation(u'顔')
-print ' '.join(res)
-print datetime.now() - start
-'''
-#print 'ok'

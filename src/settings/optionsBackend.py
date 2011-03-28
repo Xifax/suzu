@@ -22,7 +22,7 @@ class Options:
                  }),
                  ('QuizFont',               #quiz answers font
                   {'name' : u'FOT-筑紫明朝 Pro LB',
-                   'size' : 12,
+                   'size' : 14,
                    }),
                   ('MessageFont',           #messages font
                   {'name' : u'Cambria',

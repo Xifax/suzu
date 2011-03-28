@@ -80,7 +80,7 @@ STROKES = 'kanji/'
 ### version information ###
 ###########################
 
-__version__ = '0.0.1'       #beware: is not imported with '*'
+__version__ = '0.0.2'       #beware: is not imported with '*'
 __application__ = 'suzu'    #輪廻／りんね or 鈴ね
 
 ###########################
@@ -126,3 +126,9 @@ def modeByKey(key):
 ###########################
 ###       web urls      ###
 ###########################
+
+###########################
+###        timers       ###
+###########################
+
+UPDATE_FREQ = 1000  #ms

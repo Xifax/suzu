@@ -34,8 +34,9 @@ class srsScheduler:
         self.db.initializeCurrentSession(modeByKey(mode), sessionSize)
         self.mode = mode
         
-    def endCurrentSession(self):
+    def endCurrentSession(self, stats):
         self.db.endCurrentSesion()
+        self.db.saveSessionStats(stats)
         
     def getNextItem(self):
         """Get next quiz item reading, set current quiz item"""
@@ -85,6 +86,8 @@ class srsScheduler:
     def answeredWrong(self):
         self.currentItem.leitner_grade = Leitner.grades.None.index
         self.currentItem.next_quiz = Leitner.nextQuiz(self.currentItem.leitner_grade)
+        self.currentItem.wrong_in_current_session = self.currentItem.wrong_in_current_session + 1
+        
         self.db.updateQuizItem(self.currentItem)
         
     def answeredCorrect(self):
