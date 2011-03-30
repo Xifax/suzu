@@ -30,6 +30,11 @@ K_WIDTH = 500
 K_HEIGHT = D_HEIGHT
 K_INDENT = 2
 
+# kanji groups dialog
+G_WIDTH = 500
+G_HEIGHT = D_HEIGHT
+G_INDENT = 2
+
 # status dialog
 S_WIDTH = D_WIDTH
 S_HEIGHT = 30

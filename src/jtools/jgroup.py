@@ -27,7 +27,16 @@ class KanjiGrouper:
     
     def findSimilarKanji(self, kanji):
         if self.groups is not None:
-            return [group for group in self.groups if kanji in group]
+            try:
+                results = [group for group in self.groups if kanji in group][0]
+                return results
+            except IndexError:
+                return []
+            
+#            if len(results) > 0: return results[0]
+#            else: return results
+#            return [group for group in self.groups if kanji in group]
+#            return (kanji in group for group in self.groups)
          
 def getHtmlListsFromDirectory(directory):
     file_list = glob.glob(directory + '\\vol?-?-list.html')

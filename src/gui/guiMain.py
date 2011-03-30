@@ -20,6 +20,7 @@ from utilities.utils import GlobalHotkeyManager#, BackgroundDownloader
 from gui.guiManualAdd import ManualAdd 
 from gui.guiUtil import roundCorners, unfillLayout
 from jdict.db import DictionaryLookup
+from jtools.jgroup import KanjiGrouper
 from utilities.log import log
 
 # external #
@@ -45,6 +46,7 @@ class Filter(QObject):
             object.parent().info.hide()
             object.parent().allInfo.hide()
             object.parent().kanjiInfo.hide()
+            object.parent().kanjiGroups.hide()
 
             desktop = QApplication.desktop().screenGeometry()
             object.parent().info.setGeometry(QRect(desktop.width() - H_INDENT - I_WIDTH - I_INDENT, desktop.height() - V_INDENT, I_WIDTH, I_HEIGHT))
@@ -66,46 +68,59 @@ class Filter(QObject):
                 if scripts.script_type(cluster) == scripts.Script.Kanji:
                     for kanji in cluster:
                         components = components + list(object.parent().rdk[kanji]) + list('\n')
-                        #kanji_list.append(kanji)
                 
             #setting radikals
             if len(components) > 0: components.pop()    #remove last '\n'
             object.parent().info.components.setText(' '.join(components))
-            
-            #looking up translation    #TODO: show translation only when left/right button is pressed (otherwise, show just main translation)
-            '''
-            try:
-                search = object.parent().edict[object.text()]
-                #object.parent().info.translation.setText(' '.join(search.senses))        #NB: TOO MUCH!
-                object.parent().info.translation.setText(search.senses_by_reading()[object.parent().srs.getWordPronunciationFromExample(object.text())][0])
-            except:
-                object.parent().info.translation.setText('')
-            '''
-            
-            #object.parent().info.setWindowOpacity(0)
-            #fade(object.parent().info)
-            #QTimer.singleShot(100, object.parent().info.show)      #for additional smoothness
             object.parent().info.show()
 
         if event.type() == QEvent.MouseButtonPress:
             # item context menu #
             if event.button() == Qt.MiddleButton:
+                
                 object.parent().info.hide()
                 object.parent().allInfo.hide()
                 object.parent().kanjiInfo.hide()
-                print 'Middle'   #TODO: add distinction between actions     
+                
+                script = scripts.script_boundaries(object.text())
+                resulting_info = u''
+                kanji_groups = {}
+    
+                for cluster in script:
+                    if scripts.script_type(cluster) == scripts.Script.Kanji:
+                        for kanji in cluster:
+#                            kanji_groups[kanji] = object.parent().groups.findSimilarKanji(kanji)
+                            similar = object.parent().groups.findSimilarKanji(kanji)
+                            try:
+                                kanji_groups[kanji] = similar[:similar.index(kanji)] + similar[similar.index(kanji) + 1:] 
+                            except Exception:
+                                kanji_groups[kanji] = object.parent().groups.findSimilarKanji(kanji)
+                                log.debug(u'Not in group: ' + kanji)
+                            
+                for kanji in kanji_groups:
+                    #resulting_info += kanji + '\t' + ' '.join(kanji_groups[kanji]) + '<br/>'
+                    resulting_info += kanji + u' ～\t'
+                    for item in kanji_groups[kanji]:
+                        lookup = object.parent().kjd[item]
+#                        gloss = lookup.gloss
+                        resulting_info += " " + item + " <font style='font-family: Calibri; font-size: 12pt'>(" + lookup.gloss[0] + ")</font> "
+                    resulting_info += '<br/>'
+                
+                if resulting_info == u'': resulting_info = u'No such groups in Kanji.Odyssey!'
+                object.parent().kanjiGroups.info.setText(resulting_info)
+                
+                object.parent().kanjiGroups.show()
                 
             # kanji info #
             if event.button() == Qt.RightButton:
-                #if object.parent().info.isVisible() and object.parent().kanjiInfo.isHidden():  
                     
                 object.parent().info.hide()
                 object.parent().allInfo.hide()
+                object.parent().kanjiGroups.hide()
                 
                 object.parent().kanjiInfo.info.setText(u'')
                 
                 script = scripts.script_boundaries(object.text())
-                #kanji_list = []
                 resulting_info = u''
     
                 for cluster in script:
@@ -115,35 +130,33 @@ class Filter(QObject):
                                 lookup = object.parent().kjd[kanji]
                                 kun = lookup.kun_readings; on = lookup.on_readings; gloss = lookup.gloss
                                 
-                                #resulting_info += '<b>(' + kanji + ')</b>\t'
-                                resulting_info += "<font style='font-family: " + Fonts.HiragiNoMyoutyouProW3 + "; font-size: 18pt'>(" + kanji + ")</font>\t"
+                                resulting_info += "<font style='font-family: " + Fonts.HiragiNoMyoutyouProW3 + "; font-size: 16.5pt'>(" + kanji + ")</font>\t"
                             
                                 if len(kun) > 0:
                                     resulting_info += '<b>kun: </b>' + ', '.join(kun) + '\t'
                                 if len(on) > 0:
                                     resulting_info += '<b>on:</b>' + ', '.join(on) + '<br/>'
-                                    #resulting_info += '<b>on: </b>' + ', '.join(on) + '\t'
                                 if len(gloss) > 0:
                                     resulting_info += "<font style='font-family: Calibri; font-size: 12pt'>" + ", ".join(gloss) + "</font><br/>"
                             except:
                                 components += kanji + '<br/>'
-                            #kanji_list.append(kanji)
                 
-                if resulting_info != '':  object.parent().kanjiInfo.info.setText(resulting_info.rstrip('<br/>'))
+                if resulting_info != '':  
+                    if resulting_info.count('<br/>') > 7:  object.parent().kanjiInfo.setStyleSheet('QLabel { font-size: 13pt }')
+                    object.parent().kanjiInfo.info.setText(resulting_info.rstrip('<br/>'))
+                    
                 else: object.parent().kanjiInfo.info.setText(u'No such kanji in kanjidic!')
                 object.parent().kanjiInfo.show()
                 
             # translation and strokes info #
             if event.button() == Qt.LeftButton:
                 
-                #if object.parent().info.isVisible() and object.parent().allInfo.isHidden():  
                 object.parent().kanjiInfo.hide()
                 object.parent().info.hide()
+                object.parent().kanjiGroups.hide()
                               
-                #object.parent().unfill(object.parent().allInfo.layout)
                 unfillLayout(object.parent().allInfo.layout)
                 object.parent().allInfo.layout.setMargin(1)
-                #object.parent().allInfo.layout.setAlignment(Qt.AlignCenter)
                 
                 kanjiList = []
                 script = scripts.script_boundaries(object.text())
@@ -157,7 +170,6 @@ class Filter(QObject):
                 # kanji strokes
                 if len(kanjiList) > 0:
                     
-                    #infile = open('../res/kanji/KANJI-MANIFEST-UNICODE-HEX', 'r')
                     infile = open(PATH_TO_RES + STROKES + KANJI_MANIFEST, 'r')
                     text = infile.read()
                     infile.close()
@@ -170,7 +182,6 @@ class Filter(QObject):
                             gif.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)        
                             gif.setAlignment(Qt.AlignCenter) 
     
-                            #movie = QMovie('../res/kanji/' + kanji.encode('utf-8').encode('hex') + '.gif', QByteArray(), self) 
                             movie = QMovie(PATH_TO_RES + STROKES + kanji.encode('utf-8').encode('hex') + '.gif', QByteArray(), self) 
                             movie.setCacheMode(QMovie.CacheAll) 
                             movie.setSpeed(150) 
@@ -187,41 +198,17 @@ class Filter(QObject):
                 translations.setWordWrap(True)
                 translations.setAlignment(Qt.AlignCenter)
                 try:
-                    #search = object.parent().edict[object.text()]
                     search = object.parent().edict[object.parent().srs.getWordNonInflectedForm(object.text())]
 
                     translationText = u''
-                    '''
-                    for sense in search.senses_by_reading():                #TODO: change to show only one sence
-                        variants = search.senses_by_reading()[sense]
-                        variants = filter (lambda e: e != '(P)', variants)
-                        #TODO: add replace for ()
-                        
-                        translationText += '<b>' + sense + '</b>:\t' + ', '.join(variants) + '\n'
-
-                    #NB: crop text to n symbols    
-                    translations.setText(translationText.rstrip('\n'))
-                    '''
                     
-                    #variants = search.senses_by_reading()[object.parent().srs.getWordPronunciationFromExample(object.text())]#[0]       #NB: add non-inflected form control
-                    variants = search.senses_by_reading()[object.parent().srs.getWordPronounciation(object.parent().srs.getWordNonInflectedForm(object.text()))][:3]  #TODO: or add option, specifying, how many variants
-                    variants = filter (lambda e: e != '(P)', variants)                                                                          #should be shown
+                    variants = search.senses_by_reading()[object.parent().srs.getWordPronounciation(object.parent().srs.getWordNonInflectedForm(object.text()))][:3]
+                    variants = filter (lambda e: e != '(P)', variants)                                                                         
                     
                     translationText += '<b>' + object.parent().srs.getWordPronunciationFromExample(object.text()) + '</b>:\t' + ', '.join(variants)
                     translations.setText(translationText.rstrip('\n'))
                     
-                    #print translations.text()
                 except:
-                    #object.parent().jmdict.lookupItemTranslationJoin(object.parent().srs.getWordNonInflectedForm(object.text()))
-                    # at first - search just kana
-                    # then - search word by reading
-                    '''    
-                    search = object.parent().jmdict.lookupItemByReading(object.parent().srs.getWordPronounciation(object.parent().srs.getWordNonInflectedForm(object.text())))
-                    if len(search) > 0:
-                        lookup = object.parent().jmdict.lookupItemTranslationJoin(search[0])
-                        if len(lookup) > 5: lookup = lookup[:5]
-                        translations.setText('<b>' + object.parent().srs.getWordPronunciationFromExample(object.text())+ '</b>:\t' + ', '.join(lookup))
-                    '''
                     ### by reading
                     search = object.parent().jmdict.lookupTranslationByReadingJoin(object.parent().srs.getWordPronounciation(object.parent().srs.getWordNonInflectedForm(object.text())), object.parent().options.getLookupLang())
                     if len(search) > 0:
@@ -243,32 +230,34 @@ class Filter(QObject):
                     separator.setFrameShadow(QFrame.Sunken)
                     object.parent().allInfo.layout.addWidget(separator, i, 0, 1, j);   i = i + 1
                 
-                object.parent().allInfo.layout.addWidget(translations, i, 0, 1, j)    #NB: rows span should be changed, maybe
+                object.parent().allInfo.layout.addWidget(translations, i, 0, 1, j)
                 
                 object.parent().allInfo.update()
                 object.parent().allInfo.show()
                 
-            elif object.parent().allInfo.isVisible():  #object.parent().info.isHidden():
+            elif object.parent().allInfo.isVisible():
 
                 object.parent().allInfo.hide()   
                 object.parent().info.show()
             
         return False
 
-class StatusFilter(QObject):
-    """Status message mouse click filter"""
-    def eventFilter(self, object, event):
-        
-        if event.type() == QEvent.HoverEnter:
-            object.parent().status.setWindowOpacity(0.70)
-            
-        if event.type() == QEvent.HoverLeave:
-            object.parent().status.setWindowOpacity(1)
-            
-        if event.type() == QEvent.MouseButtonPress:
-            object.parent().status.hide()
-            
-        return False
+#===============================================================================
+# class StatusFilter(QObject):
+#    """Status message mouse click filter"""
+#    def eventFilter(self, object, event):
+#        
+#        if event.type() == QEvent.HoverEnter:
+#            object.parent().status.setWindowOpacity(0.70)
+#            
+#        if event.type() == QEvent.HoverLeave:
+#            object.parent().status.setWindowOpacity(1)
+#            
+#        if event.type() == QEvent.MouseButtonPress:
+#            object.parent().status.hide()
+#            
+#        return False
+#===============================================================================
 
 #######
 # GUI #
@@ -325,6 +314,13 @@ class Quiz(QFrame):
         self.kanjiInfo.info = QLabel(u'')
         self.kanjiInfo.layout.addWidget(self.kanjiInfo.info)
         self.kanjiInfo.setLayout(self.kanjiInfo.layout)
+        
+        """Kanji groups"""
+        self.kanjiGroups = QFrame()
+        self.kanjiGroups.layout = QVBoxLayout()
+        self.kanjiGroups.info = QLabel(u'')
+        self.kanjiGroups.layout.addWidget(self.kanjiGroups.info)
+        self.kanjiGroups.setLayout(self.kanjiGroups.layout)
         
         """Global Flags"""
         #self.correct = False
@@ -404,7 +400,7 @@ class Quiz(QFrame):
         self.remaining = self.nextQuizTimer.interval()
         
         if self.trayUpdater is not None and self.trayUpdater.isAlive():
-            self.trayUpdater.stop()
+            self.trayUpdater.cancel()
             
         self.trayUpdater = RepeatTimer(1.0, self.updateTrayTooltip, self.options.getRepetitionInterval() * 60)
         self.trayUpdater.start()
@@ -443,11 +439,17 @@ class Quiz(QFrame):
         """"Initialize Dictionaries    (will take a some time!)"""
         time_start = datetime.now()
         
-        self.trayIcon.showMessage('Loading...', 'Initializing dictionaries', QSystemTrayIcon.MessageIcon.Information, 20000 )     #TODO: change into loading dialog... or not
+        self.trayIcon.showMessage('Loading...', 'Initializing dictionaries', QSystemTrayIcon.MessageIcon.Information, 20000 )
+        # kanji composition #
         self.rdk = RadkDict()
+        # edict dictionary
         edict_file = resource_filename('cjktools_data', 'dict/je_edict')
         self.edict = auto_format.load_dictionary(edict_file)
+        # kanjidict dictionary #
         self.kjd = kanjidic.Kanjidic()
+        # Kanji.Odyssey groups #
+        self.groups = KanjiGrouper()
+        self.groups.loadgroupsFromDump()
         
         """Initializing srs system"""
         self.trayIcon.showMessage('Loading...', 'Initializing databases', QSystemTrayIcon.MessageIcon.Information, 20000 )
@@ -457,13 +459,6 @@ class Quiz(QFrame):
         """Jmdict lookup"""
         self.jmdict = DictionaryLookup()
         
-        """Global hotkeys hook"""
-        #TODO: add multiple hotkeys and fix stop()
-        #self.hooker = GlobalHotkeyManager(toggleQDictFlag, 'Q')
-#        self.hooker = GlobalHotkeyManager(toggleWidgetFlag(self.qdict), 'Q')
-#        self.hooker.setDaemon(True) #temporarily, should work using stop()
-#        self.hooker.start()
-
         """Manual add dialog"""
         self.manualAddDialog = ManualAdd(self.srs.db)
         
@@ -521,6 +516,13 @@ class Quiz(QFrame):
         
         self.kanjiInfo.setStyleSheet("QWidget { background-color: rgb(255, 255, 255); }")
         
+        """Kanji groups"""
+        self.kanjiGroups.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.kanjiGroups.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
+        self.kanjiGroups.setGeometry(QRect(desktop.width() - H_INDENT - G_WIDTH - G_INDENT, desktop.height() - V_INDENT, G_WIDTH, G_HEIGHT))
+        
+        self.kanjiGroups.setStyleSheet("QWidget { background-color: rgb(255, 255, 255); }")
+        
 #        self.setMask(roundCorners(self.rect(),5))
 #        self.status.setMask(roundCorners(self.status.rect(),5))
 
@@ -566,6 +568,12 @@ class Quiz(QFrame):
         self.kanjiInfo.info.setAlignment(Qt.AlignCenter)
         self.kanjiInfo.info.setWordWrap(True)
         self.kanjiInfo.layout.setMargin(0)
+        
+        self.kanjiGroups.info.setFont(QFont(Fonts.MSMyoutyou, 18.5))
+        self.kanjiGroups.info.setAlignment(Qt.AlignCenter)
+        self.kanjiGroups.info.setWordWrap(True)
+        self.kanjiGroups.layout.setMargin(0)
+        
         #NB: ...
         self.answered.setMaximumWidth(D_WIDTH)
         self.answered.setFont(QFont('Calibri', 11))
@@ -992,7 +1000,7 @@ class Quiz(QFrame):
         if self.progressTimer != () and self.progressTimer.isAlive():
                 self.progressTimer.cancel()
         if self.trayUpdater is not None and self.trayUpdater.isAlive() :
-                self.trayUpdater.stop()     
+                self.trayUpdater.cancel()    
             
         self.srs.endCurrentSession(self.stats)
         self.trayIcon.hide()
