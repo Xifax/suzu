@@ -82,9 +82,10 @@ Created on Mar 19, 2011
 # TODO: implement 'similar kanji' system, based on comparing number of similar rads in RadDict
 
 # functionality
-# ...
+# TODO: statistics dialog with graphs
 
 # utilitarian
+# TODO: resources download utilities
 
 ####################################
 #            Imports               #

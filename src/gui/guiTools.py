@@ -6,7 +6,7 @@ Created on Mar 26, 2011
 '''
 
 # internal #
-import sys, os
+import sys, os, urllib
 
 # external #
 from PySide.QtCore import *
@@ -61,6 +61,7 @@ class Tools(QDialog):
         self.initComponents()
         self.initActions()
         
+    #---------- initialization ----------#    
     def initComposition(self):
         self.setWindowFlags(Qt.Tool)
         self.setWindowTitle(u'Suzu tools')
@@ -75,7 +76,7 @@ class Tools(QDialog):
         self.downloadJmidct.setText(u'Download jmdict')
         self.downloadEdict.setText(u'Download edict')
         self.downloadStrokes.setText(u'Download strokes')
-        self.pickleJmdict.setText(u'Piclke edict')
+        self.pickleJmdict.setText(u'Pickle edict')
         
         self.downloadKanjidic.setMinimumWidth(100) 
         self.downloadJmidct.setMinimumWidth(100) 
@@ -92,7 +93,7 @@ class Tools(QDialog):
         self.downloadProgress.setHidden(True)
         
     def initActions(self):
-        pass
+        self.downloadKanjidic.clicked.connect(self.kanjidictDownloadProcess)
     
     #-------------- actions -----------------#
     def checkResources(self):
@@ -141,6 +142,27 @@ class Tools(QDialog):
     def showEvent(self, event):
         self.checkResources()
         self.updateStatus()
+        
+    def downloadStatus(self, count, blockSize, totalSize):
+        percent = int(count*blockSize*100/totalSize)
+        self.downloadProgress.setValue(percent)
+        self.update()
+    
+    def kanjidictDownloadProcess(self):
+        url = 'http://www.csse.monash.edu.au/~jwb/kanjidic2/kanjidic2.xml.gz'
+        file_name = url.split('/')[-1]
+        try:
+            self.downloadProgress.setVisible(True)
+            self.setDisabled(True)
+#            QThread.start()
+            urllib.urlretrieve(url, file_name, reporthook = self.downloadStatus)
+        except Exception, e:
+            print e
+        finally:
+            self.setEnabled(True)
+            self.downloadProgress.setHidden(True)
+            self.adjustSize()
+            self.updateStatus()
     
 if __name__ == '__main__':
 

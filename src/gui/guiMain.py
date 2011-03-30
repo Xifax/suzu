@@ -6,7 +6,7 @@ Created on Jan 31, 2011
 '''
 
 # internal #
-import sys
+#import sys
 from datetime import datetime
 
 # own #
@@ -30,7 +30,6 @@ from pkg_resources import resource_filename
 from cjktools.resources import auto_format
 from cjktools.resources import kanjidic
 from cjktools import scripts
-from utilities import rtimer
 
 ##########################################
 # Event filters/handlers and key hookers #
@@ -414,8 +413,8 @@ class Quiz(QFrame):
         self.remaining -= UPDATE_FREQ
         self.trayIcon.setToolTip('Next quiz in ' + (str(self.remaining/UPDATE_FREQ) + ' seconds'))
 
-    def noQdict(self):
-        self.showSessionMessage('Nope, cannot show quick dictionary during actual quiz.')
+#    def noQdict(self):
+#        self.showSessionMessage('Nope, cannot show quick dictionary during actual quiz.')
         
 ####################################
 #    Initialization procedures     #
@@ -481,7 +480,7 @@ class Quiz(QFrame):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setFocusPolicy(Qt.StrongFocus)
         self.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
-        #Font will appear in buttons
+        #NB: This font will be used in buttons
         self.setFont(QFont(Fonts.TukusiMyoutyouProLB, self.options.getQuizFontSize()))
 
         desktop = QApplication.desktop().screenGeometry()

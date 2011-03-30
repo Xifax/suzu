@@ -192,6 +192,9 @@ class DBoMagic:
                     times_launched = 1)
         
         session.commit()
+        
+    def getAllSessions(self):
+        return Session.query.all()
 
     def updateQuizItem(self, item):
         session.commit()

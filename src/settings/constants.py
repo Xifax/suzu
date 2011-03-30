@@ -69,6 +69,7 @@ DBNAME = 'studying.db'
 KANJIDIC2 = 'kanjidic2.db'
 JMDICT = 'jmdict.db'
 JMDICT_DUMP = 'jmdict.pck'
+GROUPS_DUMP = 'groups.pck'
 KANJI_MANIFEST = 'KANJI-MANIFEST-UNICODE-HEX'
 
 ICONS = 'icons/'
