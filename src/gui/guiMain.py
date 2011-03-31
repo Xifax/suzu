@@ -842,8 +842,9 @@ class Quiz(QFrame):
         self.srs.answeredCorrect()
         self.stats.quizAnsweredCorrect()
         
-        self.answered.setText(self.srs.getCurrentSentenceTranslation())
-        self.checkTranslationSize()
+        self.checkTranslationSize(self.srs.getCurrentSentenceTranslation())
+#        self.answered.setText(self.srs.getCurrentSentenceTranslation())
+#        self.checkTranslationSize()
         
         self.showSessionMessage(u'<font color=green>Correct: ' + self.srs.getCorrectAnswer() + '</font>\t|\tNext quiz: ' + self.srs.getNextQuizTime() 
                                 + '\t|\t<font color=' + self.srs.getLeitnerGradeAndColor()['color'] +  '>Grade: ' + self.srs.getLeitnerGradeAndColor()['grade'] 
@@ -882,11 +883,18 @@ class Quiz(QFrame):
                                 + '\t|\t<font color=' + self.srs.getLeitnerGradeAndColor()['color'] +  '>Grade: ' + self.srs.getLeitnerGradeAndColor()['grade'] 
                                 + ' (' + self.srs.getLeitnerGradeAndColor()['name'] + ')<font>')    
         
-    def checkTranslationSize(self):
-        if len(self.answered.text()) > TRANSLATION_CHARS_LIMIT:
-            self.answered.setStyleSheet('QPushButton { font-size: 8pt; }')
+    def checkTranslationSize(self, translation):
+        if len(translation) > TRANSLATION_CHARS_LIMIT:
+            self.answered.setStyleSheet('QPushButton { font-size: 9pt; }')
+            
+            space_indices = [i for i, value in enumerate(translation) if value == ' ']
+            find_nearest_index = lambda value,list : min(list, key = lambda x:abs(x - value))
+            nearest_index = find_nearest_index(TRANSLATION_CHARS_LIMIT, space_indices)
+            translation = translation[:nearest_index] + '\n' + translation[nearest_index + 1:]
         else:
             self.answered.setStyleSheet('QPushButton { font-size: 11pt; }')
+        
+        self.answered.setText(translation)
     
     def hideQuizAndWaitForNext(self):
         self.stats.postQuizEnded()
