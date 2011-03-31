@@ -366,8 +366,8 @@ class QuickDictionary(QFrame):
         
         if self.comboDictionary.currentText() == 'jmdict':
                 if not self.checkInline.isChecked():
-                    for item in results:
-                        for key in item:
+                    for item in sorted(results):
+                        for key in sorted(item.keys()):
                             if key != 'kana':
                                 self.lookupResults.insertRow(i)
                                 

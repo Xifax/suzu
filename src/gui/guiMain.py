@@ -89,7 +89,6 @@ class Filter(QObject):
                 for cluster in script:
                     if scripts.script_type(cluster) == scripts.Script.Kanji:
                         for kanji in cluster:
-#                            kanji_groups[kanji] = object.parent().groups.findSimilarKanji(kanji)
                             similar = object.parent().groups.findSimilarKanji(kanji)
                             try:
                                 kanji_groups[kanji] = similar[:similar.index(kanji)] + similar[similar.index(kanji) + 1:] 
@@ -98,11 +97,10 @@ class Filter(QObject):
                                 log.debug(u'Not in group: ' + kanji)
                             
                 for kanji in kanji_groups:
-                    #resulting_info += kanji + '\t' + ' '.join(kanji_groups[kanji]) + '<br/>'
+#                for kanji in list(reversed(sorted(kanji_groups.keys()))):
                     resulting_info += kanji + u' ～\t'
                     for item in kanji_groups[kanji]:
                         lookup = object.parent().kjd[item]
-#                        gloss = lookup.gloss
                         resulting_info += " " + item + " <font style='font-family: Calibri; font-size: 12pt'>(" + lookup.gloss[0] + ")</font> "
                     resulting_info += '<br/>'
                 
@@ -843,8 +841,6 @@ class Quiz(QFrame):
         self.stats.quizAnsweredCorrect()
         
         self.checkTranslationSize(self.srs.getCurrentSentenceTranslation())
-#        self.answered.setText(self.srs.getCurrentSentenceTranslation())
-#        self.checkTranslationSize()
         
         self.showSessionMessage(u'<font color=green>Correct: ' + self.srs.getCorrectAnswer() + '</font>\t|\tNext quiz: ' + self.srs.getNextQuizTime() 
                                 + '\t|\t<font color=' + self.srs.getLeitnerGradeAndColor()['color'] +  '>Grade: ' + self.srs.getLeitnerGradeAndColor()['grade'] 
@@ -859,8 +855,7 @@ class Quiz(QFrame):
         self.srs.answeredWrong()
         self.stats.quizAnsweredWrong()
         
-        self.answered.setText(self.srs.getCurrentSentenceTranslation())
-        self.checkTranslationSize()
+        self.checkTranslationSize(self.srs.getCurrentSentenceTranslation())
         
         self.showSessionMessage(u'<font color=tomato>Wrong! Should be: '+ self.srs.getCorrectAnswer() + '</font>\t|\tNext quiz: ' + self.srs.getNextQuizTime()
                                 + '\t|\t<font color=' + self.srs.getLeitnerGradeAndColor()['color'] +  '>Grade: ' + self.srs.getLeitnerGradeAndColor()['grade'] 
@@ -876,8 +871,7 @@ class Quiz(QFrame):
         self.srs.answeredWrong()
         self.stats.quizAnsweredWrong()
 
-        self.answered.setText(self.srs.getCurrentSentenceTranslation())
-        self.checkTranslationSize()
+        self.checkTranslationSize(self.srs.getCurrentSentenceTranslation())
         
         self.showSessionMessage(u'<font color=tomato>Timeout! Should be: ' + self.srs.getCorrectAnswer() + '</font>\t|\tNext quiz: ' + self.srs.getNextQuizTime()
                                 + '\t|\t<font color=' + self.srs.getLeitnerGradeAndColor()['color'] +  '>Grade: ' + self.srs.getLeitnerGradeAndColor()['grade'] 
