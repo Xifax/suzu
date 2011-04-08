@@ -111,7 +111,15 @@ KANA_TABLE  =  [u'あ', u'い', u'う', u'え', u'お',
                 u'ぱ', u'ぴ', u'ぷ', u'ぺ', u'ぽ' ]
 
 BUTTON_KANA_MAX = 5
+
+###########################
+###       sentences     ###
+###########################
+
+SENTENCE_MAX = 44
+COLUMNS_MAX = 22
 TRANSLATION_CHARS_LIMIT = 90
+MIN_FONT_SIZE = 14
 
 ###########################
 ###      quiz modes     ###

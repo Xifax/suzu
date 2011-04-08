@@ -31,6 +31,7 @@ from pkg_resources import resource_filename
 from cjktools.resources import auto_format
 from cjktools.resources import kanjidic
 from cjktools import scripts
+from ordereddict import OrderedDict
 
 ##########################################
 # Event filters/handlers and key hookers #
@@ -84,10 +85,12 @@ class Filter(QObject):
                 
                 script = scripts.script_boundaries(object.text())
                 resulting_info = u''
-                kanji_groups = {}
+#                kanji_groups = {}
+                kanji_groups = OrderedDict()
     
                 for cluster in script:
                     if scripts.script_type(cluster) == scripts.Script.Kanji:
+#                        for kanji in cluster[::-1]:
                         for kanji in cluster:
                             similar = object.parent().groups.findSimilarKanji(kanji)
                             try:
@@ -609,11 +612,15 @@ class Quiz(QFrame):
         """Getting actual content"""
         self.srs.getNextItem()
               
-        start = datetime.now()  #testing
+#        start = datetime.now()  #testing
         
         example = self.srs.getCurrentExample()
         
-        #NB: checking for no example case
+        # checking sentence length
+        if len(example) > SENTENCE_MAX: self.sentence.setFont(QFont(self.options.getSentenceFont(), MIN_FONT_SIZE))
+        else: self.sentence.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))
+        
+        # checking for no example case
         if example is None:
             self.manualAddDialog.setProblemKanji(self.srs.getCurrentItemKanji())
             done = self.manualAddDialog.exec_()
@@ -627,13 +634,12 @@ class Quiz(QFrame):
         else:
             example = example.replace(self.srs.getWordFromExample(), u"<font color='blue'>" + self.srs.getWordFromExample() + u"</font>")
             
-            print datetime.now() - start    #testing
+#            print datetime.now() - start    #testing
             self.sentence.setText(example)
             
-            start = datetime.now()  #testing
+#            start = datetime.now()  #testing
             readings = self.srs.getQuizVariants()
-            print datetime.now() - start    #testing
-            
+#            print datetime.now() - start    #testing
 
             changeFont = False
             for item in readings:
@@ -647,11 +653,10 @@ class Quiz(QFrame):
                         if i > 3: break
                         self.layout_horizontal.itemAt(i).widget().setText(u'')
                         
-                        #TODO: check if font is reset
                         if changeFont:
-                            self.layout_horizontal.itemAt(i).widget().setStyleSheet('QPushButton { font-size: 11pt; }')
+                            self.layout_horizontal.itemAt(i).widget().setStyleSheet('QPushButton { font-family: ' + self.options.getQuizFont() + '; font-size: 11pt; }')
                         else:
-                            self.layout_horizontal.itemAt(i).widget().setStyleSheet('QPushButton { font-size: %spt; }' % self.options.getQuizFontSize())
+                            self.layout_horizontal.itemAt(i).widget().setStyleSheet('QPushButton { font-family: ' + self.options.getQuizFont() + '; font-size: %spt; }' % self.options.getQuizFontSize())
                             
                         self.layout_horizontal.itemAt(i).widget().setText(readings[i])
             except:
@@ -665,12 +670,17 @@ class Quiz(QFrame):
         self.grid_layout.setSpacing(0)
         self.labels = []
         
+        #font size depending on sentence length
+        print len(self.srs.currentExample.sentence)
+        if len(self.srs.currentExample.sentence) > SENTENCE_MAX: font =  QFont(self.options.getSentenceFont(), MIN_FONT_SIZE)
+        else: font = QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize())
+        
         #row, column, rows span, columns span, max columns
-        i = 0; j = 0; r = 1; c = 1; n = 22
+        i = 0; j = 0; r = 1; c = 1; n = COLUMNS_MAX
         for word in self.srs.parseCurrentExample():
             label = QLabel(word)
-            label.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))
-            #label.setFont(QFont(Fonts.HiragiNoMarugotoProW4, self.options.getSentenceFontSize()))
+            label.setFont(font)
+#            label.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))
             
             label.setAttribute(Qt.WA_Hover, True)
             label.installEventFilter(self.filter)
