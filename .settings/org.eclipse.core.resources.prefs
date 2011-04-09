@@ -1,4 +1,4 @@
-#Wed Mar 30 17:02:36 MSD 2011
+#Sat Apr 09 19:30:35 MSD 2011
 eclipse.preferences.version=1
 encoding//src/gui/about.py=utf-8
 encoding//src/gui/guiMain.py=utf-8
@@ -7,6 +7,7 @@ encoding//src/gui/guiOpt.py=utf-8
 encoding//src/gui/guiQuick.py=utf-8
 encoding//src/gui/guiTools.py=utf-8
 encoding//src/gui/guiUtil.py=utf-8
+encoding//src/gui/guiWeb.py=utf-8
 encoding//src/gui/statGui.py=utf-8
 encoding//src/install.py=utf-8
 encoding//src/jdict/db.py=utf-8
@@ -20,6 +21,7 @@ encoding//src/settings/optionsBackend.py=utf-8
 encoding//src/srs/leitner.py=utf-8
 encoding//src/srs/srsManager.py=utf-8
 encoding//src/suzu.py=utf-8
+encoding//src/utilities/bijin.py=utf-8
 encoding//src/utilities/rtimer.py=utf-8
 encoding//src/utilities/stats.py=utf-8
 encoding//src/utilities/utils.py=utf-8

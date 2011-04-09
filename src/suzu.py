@@ -3,7 +3,7 @@
 Created on Mar 19, 2011
 
 @author: Yadavito
-@version: 0.0.1
+@version: 0.0.3
 @license: GPL v3
 @requires: Python 2.6.6
 @requires: PySide 1.0.0
@@ -45,6 +45,9 @@ Created on Mar 19, 2011
 # Jcconv 0.1.6
 # Cjktools
 # Cjktools-data
+# lxml
+# OrderedDict
+# BeautifulSoup
 
 ####################################
 #            Resources             #
@@ -66,6 +69,7 @@ Created on Mar 19, 2011
 # pkg_resources
 # _MeCab
 # ordereddict
+# lxml
 
 ####################################
 #    here goes global TODO list    #

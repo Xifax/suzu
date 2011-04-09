@@ -583,19 +583,6 @@ class Quiz(QFrame):
 ####################################
 #        Updating content          #
 ####################################        
-    '''
-    def unfill(self, layoutName): 
-        def deleteItems(layout): 
-            if layout is not None: 
-                while layout.count(): 
-                    item = layout.takeAt(0) 
-                    widget = item.widget() 
-                    if widget is not None: 
-                        widget.deleteLater() 
-                    else: 
-                        deleteItems(item.layout()) 
-        deleteItems(layoutName) 
-    '''
     def updateContent(self):
         
         """Resetting multi-label sentence"""
@@ -612,8 +599,6 @@ class Quiz(QFrame):
         """Getting actual content"""
         self.srs.getNextItem()
               
-#        start = datetime.now()  #testing
-        
         example = self.srs.getCurrentExample()
         
         # checking sentence length
@@ -634,20 +619,14 @@ class Quiz(QFrame):
         else:
             example = example.replace(self.srs.getWordFromExample(), u"<font color='blue'>" + self.srs.getWordFromExample() + u"</font>")
             
-#            print datetime.now() - start    #testing
             self.sentence.setText(example)
             
-#            start = datetime.now()  #testing
             readings = self.srs.getQuizVariants()
-#            print datetime.now() - start    #testing
 
             changeFont = False
             for item in readings:
                 if len(item) > BUTTON_KANA_MAX : changeFont = True
                 
-#            if changeFont: self.setStyleSheet('QPushButton { font-size: 11pt; }')
-#            else:   self.setStyleSheet('QPushButton { font-size: %spt; }' % self.options.getQuizFontSize())
-
             try:
                 for i in range(0, self.layout_horizontal.count()):
                         if i > 3: break
@@ -670,17 +649,16 @@ class Quiz(QFrame):
         self.grid_layout.setSpacing(0)
         self.labels = []
         
+        columns_mod = 0
         #font size depending on sentence length
-        print len(self.srs.currentExample.sentence)
-        if len(self.srs.currentExample.sentence) > SENTENCE_MAX: font =  QFont(self.options.getSentenceFont(), MIN_FONT_SIZE)
+        if len(self.srs.currentExample.sentence) > SENTENCE_MAX: font =  QFont(self.options.getSentenceFont(), MIN_FONT_SIZE); columns_mod = 8
         else: font = QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize())
         
         #row, column, rows span, columns span, max columns
-        i = 0; j = 0; r = 1; c = 1; n = COLUMNS_MAX
+        i = 0; j = 0; r = 1; c = 1; n = COLUMNS_MAX + columns_mod
         for word in self.srs.parseCurrentExample():
             label = QLabel(word)
             label.setFont(font)
-#            label.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))
             
             label.setAttribute(Qt.WA_Hover, True)
             label.installEventFilter(self.filter)

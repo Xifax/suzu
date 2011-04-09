@@ -81,12 +81,13 @@ ICONS = 'icons/'
 LOGOS = 'logo/'
 TRAY = 'tray/'
 STROKES = 'kanji/'
+IMAGES = 'images/'
 
 ###########################
 ### version information ###
 ###########################
 
-__version__ = '0.0.2'       #beware: is not imported with '*'
+__version__ = '0.0.3'       #beware: is not imported with '*'
 __application__ = 'suzu'    #輪廻／りんね or 鈴ね
 
 ###########################
@@ -141,8 +142,21 @@ def modeByKey(key):
 ###       web urls      ###
 ###########################
 
+NAVER_IMAGE_SEARCH = "http://search.naver.jp/image?q="
+
 ###########################
 ###        timers       ###
 ###########################
 
 UPDATE_FREQ = 1000  #ms
+
+###########################
+###     achievements    ###
+###########################
+
+BIJIN = {
+         1: (u'Kawamura Yukie', u'川村ゆきえ'),
+         2: (u'Isihara Satomi', u'石原さとみ'),
+         3: (u'Horikita Maki', u'堀北真希'),
+         
+         }
