@@ -57,7 +57,9 @@ class QuickLoad(QDialog):
     
     def initActions(self):
         self.actionsMenu = QMenu()
-        self.actionsMenu.addAction(QAction('Continue', self, triggered=self.saveAndHide))
+        self.actionsMenu.addAction(QAction('Accept and continue', self, triggered=self.saveAndHide))
+        self.actionsMenu.addAction(QAction("Don't bug me anymore", self, triggered=self.okayJpeg))
+        self.actionsMenu.addSeparator()
         self.actionsMenu.addAction(QAction('Save', self, triggered=self.saveNoClose))
         self.actionsMenu.addAction(QAction('Reset', self, triggered=self.resetDefaults))
         self.actionsMenu.addAction(QAction('Check all', self, triggered=self.checkAll))
@@ -95,6 +97,10 @@ class QuickLoad(QDialog):
     
     def saveNoClose(self):
         self.saveStatus()
+        
+    def okayJpeg(self):
+        self.showOnStart.setChecked(False)
+        self.saveAndHide()
     
     def checkAll(self):
         for item in xrange(0, self.layout.count()):

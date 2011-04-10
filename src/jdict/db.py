@@ -179,8 +179,7 @@ class DBoMagic:
     def saveSessionStats(self, stats):
         try:
             current_session = Session.query.filter_by(date = date.today()).one()
-#            current_session = Session.query.filter_by(date = date.today()).first()
-       
+            #TODO: fix quiz active time calculation
             current_session.items_correct += stats.answeredCorrect
             current_session.items_wrong += (stats.totalItemSeen - stats.answeredCorrect)
             current_session.time_running += (datetime.now() - stats.startedQuiz).seconds
