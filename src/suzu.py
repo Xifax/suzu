@@ -107,8 +107,12 @@ from gui.guiMain import Quiz
 from gui.about import About
 from gui.guiOpt import OptionsDialog
 from gui.guiQuick import QuickDictionary
+from gui.guiTools import Tools
+from gui.guiWeb import WebPage
+from gui.statGui import StatsInfo
 from utilities.utils import BackgroundDownloader
 from utilities.log import log
+from settings.optionsBackend import Options
 from jdict.db import redict      # for redict, elusive import
 
 ####################################
@@ -119,17 +123,29 @@ if __name__ == '__main__':
 
     app = QApplication(sys.argv)
     
-    quiz = Quiz()
-    if quiz.options.isPlastique():  app.setStyle('plastique')
+    # application settings #
+    options = Options()
+    if options.isPlastique():  app.setStyle('plastique')
     
+    # maing gui module #
+    quiz = Quiz(options)
+    
+    # different gui modules #
     about = About()
     options = OptionsDialog(quiz.srs.db, quiz.options)
     qdict = QuickDictionary(quiz.jmdict, quiz.edict, quiz.kjd, quiz.srs.db, quiz.options)
-        
+    
+    # background updater #
     updater = BackgroundDownloader(quiz.options.getRepetitionInterval())
     updater.start()
     
-    quiz.addReferences(about, options, qdict, updater)
+    # additional tools #
+    tools = Tools()
+    web = WebPage()
+    statistics = StatsInfo(quiz.srs.db)
+    
+    # initializing references and hotkeys #
+    quiz.addReferences(about, options, qdict, updater, tools, statistics, web)
     quiz.initGlobalHotkeys()
     
     try:

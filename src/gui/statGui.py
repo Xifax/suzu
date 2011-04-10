@@ -21,7 +21,7 @@ class StatsInfo(QDialog):
         
     #---------- initialization ----------#
     def initComposition(self):
-        pass
+        self.setWindowFlags(Qt.Tool)
     
     def initComponents(self):
         pass

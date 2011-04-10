@@ -10,8 +10,10 @@ from datetime import datetime, date
 from itertools import permutations, repeat
 from random import shuffle, sample, randrange
 import os.path, pickle, re
+
 # own #
 from settings.constants import *
+from utilities.log import log
 from srs.leitner import Leitner
 
 # external #
@@ -547,7 +549,7 @@ class DictionaryLookup:
         self.db = SqlSoup(SQLITE + PATH_TO_RES + JMDICT)
         #self.joinTables()   #TODO: should move somewhere (may be pre-dump routine?)
         self.dictionary = {}
-        self.loadJmdictFromDumpRegex()	#TODO: add check
+#        self.loadJmdictFromDumpRegex()	#TODO: add check
         
     def joinTables(self):
         '''Join tables on init for better perfomance'''
@@ -699,14 +701,24 @@ class DictionaryLookup:
         dump.close()
         
     def loadJmdictFromDump(self):
-        dump = open(PATH_TO_RES + JMDICT_DUMP, 'r')
-        self.dictionary = pickle.load(dump)
-        dump.close()
+        try:
+            dump = open(PATH_TO_RES + JMDICT_DUMP, 'r')
+            self.dictionary = pickle.load(dump)
+            dump.close()
+            return True
+        except Exception, e:
+            log.error(e)
+            return False
            
     def loadJmdictFromDumpRegex(self):
-        dump = open(PATH_TO_RES + JMDICT_DUMP + '_rx', 'r')
-        self.dictionaryR = pickle.load(dump)
-        dump.close()
+        try:
+            dump = open(PATH_TO_RES + JMDICT_DUMP + '_rx', 'r')
+            self.dictionaryR = pickle.load(dump)
+            dump.close()
+            return True
+        except Exception, e:
+            log.error(e)
+            return False
         
     def lookupAllByReading(self, kana, lang='eng'):
         '''Returns word -> reading -> senses'''

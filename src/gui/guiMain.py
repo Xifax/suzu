@@ -19,6 +19,7 @@ from utilities.stats import Stats
 from utilities.utils import GlobalHotkeyManager#, BackgroundDownloader 
 from gui.guiManualAdd import ManualAdd 
 from gui.guiUtil import roundCorners, unfillLayout
+from gui.guiLoad import QuickLoad
 from jdict.db import DictionaryLookup
 from jtools.jgroup import KanjiGrouper
 from utilities.log import log
@@ -266,8 +267,10 @@ class Filter(QObject):
 
 class Quiz(QFrame):
      
-    def __init__(self, parent=None):
+    def __init__(self, options, parent=None):
         super(Quiz, self).__init__(parent)
+        
+        self.options = options
         
         """Session Info"""
         self.status = QFrame()
@@ -419,13 +422,17 @@ class Quiz(QFrame):
 
     def initializeResources(self):
         
+        """Initialize Options"""
+#        self.options = Options()
+        
+        self.qload = QuickLoad(self.options)
+        if self.options.isLoadingOnStart():
+            self.qload.exec_()
+        
         """Pre-initialization"""
         self.animationTimer = ()
         self.progressTimer = ()
         self.grid_layout =()
-                       
-        """Initialize Options"""
-        self.options = Options()
         
         """Initialize Statistics"""
         self.stats = Stats()
@@ -442,24 +449,28 @@ class Quiz(QFrame):
         
         self.trayIcon.showMessage('Loading...', 'Initializing dictionaries', QSystemTrayIcon.MessageIcon.Information, 20000 )
         # kanji composition #
-        self.rdk = RadkDict()
+        if self.options.isLoadingRadk(): self.rdk = RadkDict()
         # edict dictionary
-        edict_file = resource_filename('cjktools_data', 'dict/je_edict')
-        self.edict = auto_format.load_dictionary(edict_file)
+        if self.options.isLoadingEdict():
+            edict_file = resource_filename('cjktools_data', 'dict/je_edict')
+            self.edict = auto_format.load_dictionary(edict_file)
+        else: self.edict = None
         # kanjidict dictionary #
-        self.kjd = kanjidic.Kanjidic()
+        if self.options.isLoadingKdict(): self.kjd = kanjidic.Kanjidic()
+        else: self.kjd = None
         # Kanji.Odyssey groups #
         self.groups = KanjiGrouper()
-        self.groups.loadgroupsFromDump()
+        if self.options.isLoadingGroups(): self.groups.loadgroupsFromDump()
         
         """Initializing srs system"""
         self.trayIcon.showMessage('Loading...', 'Initializing databases', QSystemTrayIcon.MessageIcon.Information, 20000 )
         self.srs = srsScheduler()
-        self.srs.initializeCurrentSession(self.options.getQuizMode(), self.options.getSessionSize())
+        if self.options.isLoadingDb(): self.srs.initializeCurrentSession(self.options.getQuizMode(), self.options.getSessionSize())
         
         """Jmdict lookup"""
         self.jmdict = DictionaryLookup()
-        
+        if self.options.isLoadingJmdict(): self.jmdict.loadJmdictFromDumpRegex()
+                
         """Manual add dialog"""
         self.manualAddDialog = ManualAdd(self.srs.db)
         
@@ -750,9 +761,12 @@ class Quiz(QFrame):
         self.trayMenu.addAction(self.pauseAction)
         self.trayMenu.addSeparator()
         self.trayMenu.addAction(QAction('Quick &dictionary', self, shortcut="D", triggered=self.showQuickDict))
-        self.trayMenu.addAction(QAction('&Global &statistics', self, shortcut="G", triggered=self.showGlobalStatistics))
         self.trayMenu.addAction(QAction('&Options', self, shortcut="O", triggered=self.showOptions))
+        self.trayMenu.addAction(QAction('&Quick &load', self, shortcut="L", triggered=self.showQuickLoad))
+        self.trayMenu.addSeparator()
         self.trayMenu.addAction(QAction('&About', self, shortcut="A", triggered=self.showAbout))
+        self.trayMenu.addAction(QAction('&Global statistics', self, shortcut="G", triggered=self.showGlobalStatistics))
+        self.trayMenu.addAction(QAction('&Utilities', self, shortcut="U", triggered=self.showToolsDialog))
         self.trayMenu.addSeparator()
         self.trayMenu.addAction(QAction('&Exit', self, shortcut="E", triggered=self.saveAndExit))
 
@@ -955,7 +969,13 @@ class Quiz(QFrame):
         self.qdict.showQDict = True
         
     def showGlobalStatistics(self):
-        print '...'
+        self.statistics.show()
+        
+    def showToolsDialog(self):
+        self.tools.show()
+        
+    def showQuickLoad(self):
+        self.qload.show()
         
     def startTrayLoading(self):
         self.gifLoading.start()
@@ -1003,11 +1023,14 @@ class Quiz(QFrame):
         self.qdict.close()
         self.close()        
         
-    def addReferences(self, about, options, qdict, updater):
+    def addReferences(self, about, options, qdict, updater, tools, statistics, web):
         self.about = about
         self.optionsDialog = options
         self.qdict = qdict
         self.updater = updater
+        self.tools = tools
+        self.statistics = statistics
+        self.web = web
         
     def initGlobalHotkeys(self):
         def toggleWidgetFlag(): self.qdict.showQDict = True

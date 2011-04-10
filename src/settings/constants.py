@@ -64,6 +64,10 @@ Q_SPACE = 30
 T_WIDTH = 200
 T_HEIGHT = 300
 
+# quick load
+L_WIDTH = 180
+L_HEIGHT = 220
+
 ###########################
 ### paths and resources ###
 ###########################
@@ -158,5 +162,6 @@ BIJIN = {
          1: (u'Kawamura Yukie', u'川村ゆきえ'),
          2: (u'Isihara Satomi', u'石原さとみ'),
          3: (u'Horikita Maki', u'堀北真希'),
-         
+         4: (u'Kago Ai', u'加護亜依'),
+         5: (u'Isihara Satomi', u'石原さとみ')
          }

@@ -62,6 +62,15 @@ class Options:
                   {'lang'       : 'eng',    #translation language
                    'default'    : 'jmdict', #default dictionary
                    }),
+                 ('Load',                   #loading different db and dictionaries
+                  {'db'         : True,
+                   'edict'      : True,
+                   'radk'       : True,
+                   'kdict'      : True,
+                   'jmdict'     : True,
+                   'groups'     : True,
+                   'onstart'    : True,
+                   }),
                ]
         
         #creates or reads from app.ini in Users/username/
@@ -196,3 +205,47 @@ class Options:
     
     def setLookupDict(self, dict):
         self.CONFIG.set('Dict', 'default', dict)
+        
+    ### loading ###
+    def isLoadingDb(self):
+        return self.CONFIG.get('Load', 'db')
+    
+    def setLoadingDb(self, flag):
+        self.CONFIG.set('Load', 'db', flag)
+        
+    def isLoadingEdict(self):
+        return self.CONFIG.get('Load', 'edict')
+    
+    def setLoadingEdict(self, flag):
+        self.CONFIG.set('Load', 'edict', flag)
+        
+    def isLoadingRadk(self):
+        return self.CONFIG.get('Load', 'radk')
+    
+    def setLoadingRadk(self, flag):
+        self.CONFIG.set('Load', 'radk', flag)
+        
+    def isLoadingKdict(self):
+        return self.CONFIG.get('Load', 'kdict')
+    
+    def setLoadingKdict(self, flag):
+        self.CONFIG.set('Load', 'kdict', flag)
+        
+    def isLoadingJmdict(self):
+        return self.CONFIG.get('Load', 'jmdict')
+    
+    def setLoadingJmdict(self, flag):
+        self.CONFIG.set('Load', 'jmdict', flag)
+        
+    def isLoadingGroups(self):
+        return self.CONFIG.get('Load', 'groups')
+    
+    def setLoadingGroups(self, flag):
+        self.CONFIG.set('Load', 'groups', flag)
+        
+    def isLoadingOnStart(self):
+        return self.CONFIG.get('Load', 'onstart')
+    
+    def setLoadingOnStart(self, flag):
+        self.CONFIG.set('Load', 'onstart', flag)
+        

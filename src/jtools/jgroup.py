@@ -14,6 +14,7 @@ from BeautifulSoup import BeautifulSoup
 
 # own #
 from settings.constants import PATH_TO_RES, GROUPS_DUMP
+from utilities.log import log
 
 class KanjiGrouper:
     
@@ -21,9 +22,14 @@ class KanjiGrouper:
         self.groups = None
     
     def loadgroupsFromDump(self):
-        dump = open(PATH_TO_RES + GROUPS_DUMP, 'r')
-        self.groups = pickle.load(dump)
-        dump.close()
+        try:
+            dump = open(PATH_TO_RES + GROUPS_DUMP, 'r')
+            self.groups = pickle.load(dump)
+            dump.close()
+            return True
+        except Exception, e:
+            log.error(e)
+            return False
     
     def findSimilarKanji(self, kanji):
         if self.groups is not None:

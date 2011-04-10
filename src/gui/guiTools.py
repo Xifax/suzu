@@ -98,7 +98,7 @@ class Tools(QDialog):
     #-------------- actions -----------------#
     def checkResources(self):
         self.flags = { 'kanjidic' : os.path.exists(PATH_TO_RES + KANJIDIC2), 'jmdict' : os.path.exists(PATH_TO_RES + JMDICT), 
-                      'jmdict_pkl' : os.path.exists(PATH_TO_RES + JMDICT_DUMP), 'edict' : True, 'strokes' : os.path.exists(PATH_TO_RES + STROKES) }
+                      'jmdict_pck' : os.path.exists(PATH_TO_RES + JMDICT_DUMP + '_rx'), 'edict' : True, 'strokes' : os.path.exists(PATH_TO_RES + STROKES) }
     
     def updateStatus(self):
         if self.flags['kanjidic']:
@@ -129,7 +129,7 @@ class Tools(QDialog):
             self.statusEdict.setText(u'Not availiable')
             self.downloadEdict.setEnabled(True)
 
-        if self.flags['jmdict_pkl']:
+        if self.flags['jmdict_pck']:
             self.statusDump.setText(u'<b>Availiable</b>')
             self.pickleJmdict.setDisabled(True)
         elif self.flags['jmdict']:
