@@ -87,6 +87,17 @@ TRAY = 'tray/'
 STROKES = 'kanji/'
 IMAGES = 'images/'
 
+NOW_ICON = 'now.png'
+START_ICON = 'start.png'
+PAUSE_ICON = 'pause.png'
+OPTIONS_ICON = 'wrench.png'
+ABOUT_ICON = 'info.png'
+STAT_ICON = 'docs.png'
+CLOSE_ICON = 'close.png'
+DICT_ICON = 'dict.png'
+LOAD_ICON = 'load.png'
+UTILS_ICON = 'utils.png'
+
 ###########################
 ### version information ###
 ###########################

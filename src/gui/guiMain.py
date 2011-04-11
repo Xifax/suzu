@@ -277,8 +277,10 @@ class Quiz(QFrame):
         self.status = QFrame()
         ##session message
         self.status.message = QLabel(u'')
-        self.status.layout = QHBoxLayout()
+#        self.status.info = QLabel('Test!')
+        self.status.layout = QVBoxLayout()
         self.status.layout.addWidget(self.status.message)
+#        self.status.layout.addWidget(self.status.info)
         self.status.setLayout(self.status.layout)
         #mouse event filter
         self.status.filter = StatusFilter(self.status)
@@ -389,10 +391,12 @@ class Quiz(QFrame):
             self.waitUntilNextTimeslot()
             self.trayIcon.setToolTip('Quiz has started automatically!')
             self.pauseAction.setText('&Pause')
-            self.trayIcon.showMessage('Loading complete! (took ~'+ str(self.loadingTime.seconds) + ' seconds) Quiz underway.', 'Lo! Quiz already in progress!', QSystemTrayIcon.MessageIcon.Warning, 10000)
+            self.trayIcon.showMessage('Loading complete! (took ~'+ str(self.loadingTime.seconds) + ' seconds) Quiz underway.', 
+                                      'Lo! Quiz already in progress!'  + self.loadingStatus, QSystemTrayIcon.MessageIcon.Warning, 10000)
         else:
             self.trayIcon.setToolTip('Quiz is not initiated!')
-            self.trayIcon.showMessage('Loading complete! (took ~' + str(self.loadingTime.seconds) + ' seconds) Standing by.', 'Quiz has not started yet! If you wish, you could start it manually or enable autostart by default.', 
+            self.trayIcon.showMessage('Loading complete! (took ~' + str(self.loadingTime.seconds) + ' seconds) Standing by.', 
+                                      'Quiz has not started yet! If you wish, you could start it manually or enable autostart by default.'  + self.loadingStatus, 
                                       QSystemTrayIcon.MessageIcon.Information, 10000 )
             
         self.setWindowIcon(QIcon(PATH_TO_RES + ICONS + 'suzu.png'))
@@ -425,6 +429,7 @@ class Quiz(QFrame):
         
         """Initialize Options"""
 #        self.options = Options()
+        self.loadingStatus = u''
         
         self.qload = QuickLoad(self.options)
         if self.options.isLoadingOnStart():
@@ -451,29 +456,39 @@ class Quiz(QFrame):
         self.trayIcon.showMessage('Loading...', 'Initializing dictionaries', QSystemTrayIcon.MessageIcon.Information, 20000 )
         # kanji composition #
         if self.options.isLoadingRadk(): self.rdk = RadkDict()
+        else: self.loadingStatus += '--> Radikt disabled!\n'
         # edict dictionary
         if self.options.isLoadingEdict():
             edict_file = resource_filename('cjktools_data', 'dict/je_edict')
             self.edict = auto_format.load_dictionary(edict_file)
-        else: self.edict = None
+        else: 
+            self.edict = None
+            self.loadingStatus += '--> Edict disabled!\n'
         # kanjidict dictionary #
         if self.options.isLoadingKdict(): self.kjd = kanjidic.Kanjidic()
-        else: self.kjd = None
+        else: 
+            self.kjd = None
+            self.loadingStatus += '--> Kanjidict disabled!\n'
         # Kanji.Odyssey groups #
         self.groups = KanjiGrouper()
         if self.options.isLoadingGroups(): self.groups.loadgroupsFromDump()
+        else: self.loadingStatus += '--> Kanji.Odyssey disabled!\n'
         
         """Initializing srs system"""
         self.trayIcon.showMessage('Loading...', 'Initializing databases', QSystemTrayIcon.MessageIcon.Information, 20000 )
         self.srs = srsScheduler()
         if self.options.isLoadingDb(): self.srs.initializeCurrentSession(self.options.getQuizMode(), self.options.getSessionSize())
+        else: self.loadingStatus += '--> Database disabled!\n'
         
         """Jmdict lookup"""
         self.jmdict = DictionaryLookup()
         if self.options.isLoadingJmdict(): self.jmdict.loadJmdictFromDumpRegex()
+        else: self.loadingStatus += '--> Jmdict disabled!\n'
                 
         """Manual add dialog"""
         self.manualAddDialog = ManualAdd(self.srs.db)
+        
+        if self.loadingStatus != '': self.loadingStatus = '\n\n' + self.loadingStatus
         
         time_end = datetime.now()
         self.loadingTime =  time_end - time_start
@@ -757,19 +772,49 @@ class Quiz(QFrame):
 ####################################    
     
     def setMenus(self):
-        self.trayMenu.addAction(QAction('&Quiz me now!', self, shortcut="Q", triggered=self.showQuiz))
-        self.pauseAction = QAction('&Start quiz!', self, shortcut="S", triggered=self.pauseQuiz)
+        
+        self.showQuizAction = QAction('&Quiz me now!', self, triggered=self.showQuiz)
+        self.showQuizAction.setIcon(QIcon(PATH_TO_RES + TRAY + NOW_ICON))
+        self.trayMenu.addAction(self.showQuizAction)
+        
+        self.pauseAction = QAction('&Start quiz!', self, triggered=self.pauseQuiz)
+        self.pauseAction.setIcon(QIcon(PATH_TO_RES + TRAY + START_ICON))
         self.trayMenu.addAction(self.pauseAction)
+        
         self.trayMenu.addSeparator()
-        self.trayMenu.addAction(QAction('Quick &dictionary', self, shortcut="D", triggered=self.showQuickDict))
-        self.trayMenu.addAction(QAction('&Options', self, shortcut="O", triggered=self.showOptions))
-        self.trayMenu.addAction(QAction('&Quick &load', self, shortcut="L", triggered=self.showQuickLoad))
+        
+        self.quickDictAction = QAction('Quick &dictionary', self, triggered=self.showQuickDict)
+        self.quickDictAction.setIcon(QIcon(PATH_TO_RES + TRAY + DICT_ICON))
+        self.trayMenu.addAction(self.quickDictAction)
+        
+        self.optionsAction = QAction('&Options', self, triggered=self.showOptions)
+        self.optionsAction.setIcon(QIcon(PATH_TO_RES + TRAY + OPTIONS_ICON))
+        self.trayMenu.addAction(self.optionsAction)
+        
+        self.quickLoadAction = QAction('&Quick &load', self, triggered=self.showQuickLoad)
+        self.quickLoadAction.setIcon(QIcon(PATH_TO_RES + TRAY + LOAD_ICON))
+        self.trayMenu.addAction(self.quickLoadAction)
+        
         self.trayMenu.addSeparator()
-        self.trayMenu.addAction(QAction('&About', self, shortcut="A", triggered=self.showAbout))
-        self.trayMenu.addAction(QAction('&Global statistics', self, shortcut="G", triggered=self.showGlobalStatistics))
-        self.trayMenu.addAction(QAction('&Utilities', self, shortcut="U", triggered=self.showToolsDialog))
+        
+        self.aboutAction = QAction('&About', self, triggered=self.showAbout)
+        self.aboutAction.setIcon(QIcon(PATH_TO_RES + TRAY + ABOUT_ICON))
+        self.trayMenu.addAction(self.aboutAction)
+        
+        self.globalStatsAction = QAction('&Global statistics', self, triggered=self.showGlobalStatistics)
+        self.globalStatsAction.setIcon(QIcon(PATH_TO_RES + TRAY + STAT_ICON))
+        self.trayMenu.addAction(self.globalStatsAction)
+        
+        self.utilAction = QAction('&Utilities', self, triggered=self.showToolsDialog)
+        self.utilAction.setIcon(QIcon(PATH_TO_RES + TRAY + UTILS_ICON))
+        self.trayMenu.addAction(self.utilAction)
+        
         self.trayMenu.addSeparator()
-        self.trayMenu.addAction(QAction('&Exit', self, shortcut="E", triggered=self.saveAndExit))
+        
+        self.quitAction = QAction('&Exit', self, triggered=self.saveAndExit)
+        self.quitAction.setIcon(QIcon(PATH_TO_RES + TRAY + CLOSE_ICON))
+        self.trayMenu.addAction(self.quitAction)
+        
 
         self.trayIcon.setContextMenu(self.trayMenu)
         self.trayIcon.activated.connect(self.onTrayIconActivated)
@@ -912,10 +957,11 @@ class Quiz(QFrame):
             if self.pauseAction.text() == '&Pause':
                 self.nextQuizTimer.stop()
                 self.pauseAction.setText('&Unpause')
-                self.pauseAction.setShortcut('U')
+#                self.pauseAction.setShortcut('U')
                 self.trayIcon.setToolTip('Quiz paused!')
                 
                 self.trayIcon.setIcon(QIcon(PATH_TO_RES + TRAY + 'inactive.png'))
+                self.pauseAction.setIcon(QIcon(PATH_TO_RES + TRAY + START_ICON))
                 self.stats.pauseStarted()
                 
                 self.updater.mayUpdate = True
@@ -923,17 +969,19 @@ class Quiz(QFrame):
             elif self.pauseAction.text() == '&Start quiz!':
                 self.waitUntilNextTimeslot()
                 self.pauseAction.setText('&Pause')
-                self.pauseAction.setShortcut('P')
+#                self.pauseAction.setShortcut('P')
                 self.trayIcon.setToolTip('Quiz in progress!')
                 
                 self.trayIcon.setIcon(QIcon(PATH_TO_RES + TRAY + 'active.png'))
+                self.pauseAction.setIcon(QIcon(PATH_TO_RES + TRAY + PAUSE_ICON))
             else:
                 self.waitUntilNextTimeslot()
                 self.pauseAction.setText('&Pause')
-                self.pauseAction.setShortcut('P')
+#                self.pauseAction.setShortcut('P')
                 self.trayIcon.setToolTip('Quiz in progress!')
                 
                 self.trayIcon.setIcon(QIcon(PATH_TO_RES + TRAY + 'active.png'))
+                self.pauseAction.setIcon(QIcon(PATH_TO_RES + TRAY + PAUSE_ICON))
                 self.stats.pauseEnded()
                 
                 self.updater.mayUpdate = False
