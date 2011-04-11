@@ -244,22 +244,23 @@ class Filter(QObject):
             
         return False
 
-#===============================================================================
-# class StatusFilter(QObject):
-#    """Status message mouse click filter"""
-#    def eventFilter(self, object, event):
-#        
-#        if event.type() == QEvent.HoverEnter:
-#            object.parent().status.setWindowOpacity(0.70)
-#            
-#        if event.type() == QEvent.HoverLeave:
-#            object.parent().status.setWindowOpacity(1)
-#            
-#        if event.type() == QEvent.MouseButtonPress:
-#            object.parent().status.hide()
-#            
-#        return False
-#===============================================================================
+class StatusFilter(QObject):
+    """Status message mouse click filter"""
+    def eventFilter(self, object, event):
+        
+        if event.type() == QEvent.HoverEnter:
+            object.setWindowOpacity(0.70)
+            
+        if event.type() == QEvent.HoverLeave:
+            object.setWindowOpacity(1)
+            
+        if event.type() == QEvent.MouseButtonPress:
+            if event.button() == Qt.LeftButton:
+                pass
+            elif event.button() == Qt.RightButton:
+                object.hide()
+            
+        return False
 
 #######
 # GUI #
@@ -279,10 +280,10 @@ class Quiz(QFrame):
         self.status.layout = QHBoxLayout()
         self.status.layout.addWidget(self.status.message)
         self.status.setLayout(self.status.layout)
-        ##mouse event filter
-        #self.status.filter = StatusFilter()
+        #mouse event filter
+        self.status.filter = StatusFilter(self.status)
         self.status.setAttribute(Qt.WA_Hover, True)
-        #self.status.installEventFilter(self.status.filter)
+        self.status.installEventFilter(self.status.filter)
 
         """Items Info"""
         self.info = QFrame()
