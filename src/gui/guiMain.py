@@ -23,6 +23,7 @@ from gui.guiLoad import QuickLoad
 from jdict.db import DictionaryLookup
 from jtools.jgroup import KanjiGrouper
 from utilities.log import log
+from utilities.bijin import Achievements
 
 # external #
 from PySide.QtCore import QTimer,Qt,QRect,QObject,QEvent,QByteArray
@@ -249,13 +250,18 @@ class StatusFilter(QObject):
     def eventFilter(self, object, event):
         
         if event.type() == QEvent.HoverEnter:
-            object.setWindowOpacity(0.70)
+            object.setWindowOpacity(0.80)
             
         if event.type() == QEvent.HoverLeave:
             object.setWindowOpacity(1)
             
         if event.type() == QEvent.MouseButtonPress:
             if event.button() == Qt.LeftButton:
+#                object.info.setText(object.achievements.randomBijin()[1])
+#                object.info.show()
+#                object.progress.show()
+#                object.setMask(roundCorners(object.rect(),5))
+#                object.move( object.x(), object.y() - 30 )
                 pass
             elif event.button() == Qt.RightButton:
                 object.hide()
@@ -275,12 +281,17 @@ class Quiz(QFrame):
         
         """Session Info"""
         self.status = QFrame()
-        ##session message
+        #session message
         self.status.message = QLabel(u'')
-#        self.status.info = QLabel('Test!')
+        #achievements
+        self.status.achievements = Achievements()
+        self.status.info = QLabel(u'')
+        self.status.progress = QProgressBar()
         self.status.layout = QVBoxLayout()
+        #layout
+        self.status.layout.addWidget(self.status.info)
+        self.status.layout.addWidget(self.status.progress)
         self.status.layout.addWidget(self.status.message)
-#        self.status.layout.addWidget(self.status.info)
         self.status.setLayout(self.status.layout)
         #mouse event filter
         self.status.filter = StatusFilter(self.status)
@@ -601,6 +612,10 @@ class Quiz(QFrame):
         self.kanjiGroups.info.setAlignment(Qt.AlignCenter)
         self.kanjiGroups.info.setWordWrap(True)
         self.kanjiGroups.layout.setMargin(0)
+        
+        self.status.info.setHidden(True)
+        self.status.progress.setHidden(True)
+        self.status.progress.setMaximumHeight(12)
         
         #NB: ...
         self.answered.setMaximumWidth(D_WIDTH)

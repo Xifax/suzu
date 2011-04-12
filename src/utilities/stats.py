@@ -20,8 +20,6 @@ class Stats():
         self.startQuiz = ()
         self.startPause = ()
         
-        #self.isPaused = False;
-        
         self.totalMusingsTime = timedelta(seconds = 0)
         self.totalPostQuizTime = timedelta(seconds = 0)
         
@@ -52,9 +50,6 @@ class Stats():
         return time.strftime('%H:%M:%S', time.gmtime(self.totalPostQuizTime.seconds))
     
     def getPausedTime(self):
-        #if self.startPause != ():
-        #if self.isPaused:
-            #self.totalPauseTime += datetime.now() - self.startPause
         return time.strftime('%H:%M:%S', time.gmtime(self.totalPauseTime.seconds))
     
     def getQuizActive(self):
@@ -83,9 +78,7 @@ class Stats():
         self.totalPostQuizTime += datetime.now() - self.startQuiz
         
     def pauseStarted(self):
-        #self.isPaused = True
         self.startPause = datetime.now()
         
     def pauseEnded(self):
         self.totalPauseTime += datetime.now() - self.startPause
-        #self.isPaused = False

@@ -23,9 +23,9 @@ class MecabTool:
             infos['reading'] = array[5]
             infos['nform'] = array[6]                # non-inflected form (self)
             try:
-                infos['pronunciation'] = array[7]       #NB: somehow, error hath happened here
+                infos['pronunciation'] = array[7]
             except IndexError, e:
-                print e, text; log.debug(e +'\t' + text) 
+                print e, text; log.debug(str(e) +'\t' + text) 
             if not infos['type'] == "BOS/EOS":
                 word_array.append(infos)
             mnode = mnode.next

@@ -487,7 +487,8 @@ class DBoMagic:
         return success
             
     def countTotalItemsInDb(self):
-        return { 'kanji' : Kanji.query.count(), 'words': Word.query.count() }
+#        return { 'kanji' : Kanji.query.count(), 'words': Word.query.count() }
+        return { modes.kanji.key : Kanji.query.count(), modes.words.key: Word.query.count() }
     
     def countItemsByGrades(self):
         results = {}

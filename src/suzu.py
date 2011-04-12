@@ -84,13 +84,10 @@ Created on Mar 19, 2011
 # TODO: fix 'pause time'
 
 # concept
-# TODO: implement 'similar kanji' system, based on comparing number of similar rads in RadDict
 
 # functionality
-# TODO: statistics dialog with graphs
 
 # utilitarian
-# TODO: resources download utilities
 
 ####################################
 #            Imports               #
@@ -127,10 +124,10 @@ if __name__ == '__main__':
     options = Options()
     if options.isPlastique():  app.setStyle('plastique')
     
-    # maing gui module #
+    # main gui module #
     quiz = Quiz(options)
     
-    # different gui modules #
+    # additional gui components #
     about = About()
     options = OptionsDialog(quiz.srs.db, quiz.options)
     qdict = QuickDictionary(quiz.jmdict, quiz.edict, quiz.kjd, quiz.srs.db, quiz.options)

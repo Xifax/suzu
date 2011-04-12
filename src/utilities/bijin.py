@@ -6,7 +6,7 @@ Created on Apr 9, 2011
 '''
 
 # internal
-import os, urllib2, StringIO
+import os, urllib2, StringIO, random
 from urllib import urlretrieve
 import urlparse
 
@@ -15,27 +15,55 @@ from lxml import etree
 from BeautifulSoup import BeautifulSoup
 
 # own
-from settings.constants import PATH_TO_RES, IMAGES
+from settings.constants import PATH_TO_RES, IMAGES, BIJIN
 from utilities.log import log
-
-BEHOIMI_MAIN = "http://behoimi.org/post/index.xml?limit="
-BEHOIMI_QUERY = "&commit=Search&tags="
-BEHOIMI_POST = "http://behoimi.org/post/show/"
 
 class Achievements:
     def __init__(self):
-        pass
+        self.score = 0
+        self.threshold = 10
+        self.achieved = None
+        self.alreadySeen = []
     
     def correctAnswer(self):
-        pass
+        self.score += 1
+        if self.score == self.threshold:
+            self.threshold *= 2
+            self.achieved = self.randomBijin()
+#            return self.randomBijin()
+        else:
+            self.achieved = None
         
     def wrongAnswer(self):
-        pass
+        self.score -= 1
+        
+#    def achievedCheck(self):
+#        return self.achieved
+    
+    def randomBijin(self):
+        tries = 0
+#        new_bijin = None
+        
+        while tries <= len(BIJIN.keys()):
+            index = random.randrange(1, len(BIJIN.keys()))
+                                     
+            if index not in self.alreadySeen:
+                break
+#                new_bijin = BIJIN[index]
+            else:
+                tries += 1
+                
+        self.alreadySeen.append(index)
+        return BIJIN[index]
     
     @staticmethod
     def nameToTag(name):
         return name.replace(' ', '_').lower()
     
+BEHOIMI_MAIN = "http://behoimi.org/post/index.xml?limit="
+BEHOIMI_QUERY = "&commit=Search&tags="
+BEHOIMI_POST = "http://behoimi.org/post/show/"
+
 class ImageGetter:
     @staticmethod
     def getBijinImages(name, limit):
@@ -95,4 +123,4 @@ class ImageGetter:
             log.error(e)
             return False
         
-ImageGetter.getBijinImages('horikita_maki', 3)
+#ImageGetter.getBijinImages('horikita_maki', 3)

@@ -80,7 +80,6 @@ class OptionsDialog(QFrame):
         self.checkGlobalHotkeys = QCheckBox('Enable global hotkeys')
         self.checkItemsBackground = QCheckBox('Show colorful background')
         self.checkPlastiqueTheme = QCheckBox("Use 'plastique' theme")
-        self.checkPreloadDictionary = QCheckBox("Load jmdict into memory on start")
         
         self.appLayout = QVBoxLayout()
         self.appLayout.addWidget(self.checkAutostart)
@@ -92,7 +91,7 @@ class OptionsDialog(QFrame):
         self.appLayout.addWidget(self.checkGlobalHotkeys)
         self.appLayout.addWidget(self.checkItemsBackground)
         self.appLayout.addWidget(self.checkPlastiqueTheme)
-        self.appLayout.addWidget(self.checkPreloadDictionary)
+#        self.appLayout.addWidget(self.checkPreloadDictionary)
         
         self.appOptionsGroup.setLayout(self.appLayout)
         
@@ -325,9 +324,8 @@ class OptionsDialog(QFrame):
         self.checkSoundSignal.setChecked(self.options.isSoundOn())
         self.checkItemsBackground.setChecked(self.options.isBackgroundOn())
         self.checkPlastiqueTheme.setChecked(self.options.isPlastique())
-        self.checkPreloadDictionary.setChecked(self.options.isPreloading())
         
-        self.sessionModeCombo.addItems(['kanji', 'compounds', 'all'])
+        self.sessionModeCombo.addItems([modes.kanji.key, modes.words.key, modes.all.key])
         self.languageCombo.addItems(['eng','rus'])
         self.shortcutCombo.addItems(['Q', 'D', 'J'])
         self.comboTag.addItems(['jlpt', 'grade'])
@@ -356,6 +354,8 @@ class OptionsDialog(QFrame):
         self.countdownDial.valueChanged.connect(self.updateCountdownSpin)
         self.countdownSpin.valueChanged.connect(self.updateCountdownDial)
         
+        self.sessionModeCombo.currentIndexChanged.connect(self.updateTooltips)
+        
         self.comboTag.currentIndexChanged.connect(self.updateComboLevel)
         
         self.viewAll.clicked.connect(self.showAll)
@@ -383,7 +383,6 @@ class OptionsDialog(QFrame):
         self.options.setSessionLength(self.sessionLengthSpin.value())
         ### dictionary ###
         self.options.setLookupLang(self.languageCombo.currentText())
-        self.options.setPreloading(self.checkPreloadDictionary.isChecked())
         
         self.showInfo(u'All options saved!')
     
@@ -462,17 +461,26 @@ class OptionsDialog(QFrame):
         self.tagsView.resizeRowsToContents()
         
     def updateTotalItemsLabel(self):
-        self.totalLabel.setText(u'Kanji: <b>' + str(self.dbItems['kanji']) + '</b>\tWords: <b>' + str(self.dbItems['words']) + '</b>\tTotal: <b>%s</b>' 
-                        % (self.dbItems['kanji'] + self.dbItems['words'])  )
+        self.totalLabel.setText(u'Kanji: <b>' + str(self.dbItems[modes.kanji.key]) + '</b>\tWords: <b>' + str(self.dbItems[modes.words.key]) + '</b>\tTotal: <b>%s</b>' 
+                        % (self.dbItems[modes.kanji.key] + self.dbItems[modes.words.key])  )
         
     def updateSessionLimits(self):
-        self.sessionItemsSpin.setRange(1, self.dbItems['kanji'] + self.dbItems['words'])
-        self.sessionLengthSpin.setRange(1, 4 * (self.dbItems['kanji'] + self.dbItems['words']))
+        self.sessionItemsSpin.setRange(1, self.dbItems[modes.kanji.key] + self.dbItems[modes.words.key])
+        self.sessionLengthSpin.setRange(1, 4 * (self.dbItems[modes.kanji.key] + self.dbItems[modes.words.key]))
         
     def updateTotalItems(self):
         self.dbItems = self.db.countTotalItemsInDb()
         self.updateTotalItemsLabel()
         self.updateSessionLimits()
+        self.updateTooltips()
+    
+    def updateTooltips(self):
+        if self.sessionModeCombo.currentText() == modes.kanji.key:
+            self.sessionItemsSpin.setToolTip('Max items: <b>' + str(self.dbItems[modes.kanji.key]) + '<b/>')
+        elif self.sessionModeCombo.currentText() == modes.words.key:
+            self.sessionItemsSpin.setToolTip('Max items: <b>' + str(self.dbItems[modes.words.key]) + '<b/>')
+        elif self.sessionModeCombo.currentText() == modes.all.key:
+            self.sessionItemsSpin.setToolTip('Max items: <b>' + str(self.dbItems[modes.kanji.key] + self.dbItems[modes.words.key]) + '<b/>')
     
     def updateDB(self):
         #self.progressDb.show()
@@ -609,6 +617,9 @@ class OptionsDialog(QFrame):
             
             self.items.setLayout(self.items.layout)
             self.items.show()
+            
+    def showEvent(self, event):
+        self.updateTotalItems()
         
 #------------------- Fading methods ---------------------#
     def fadeStatus(self):
@@ -624,19 +635,3 @@ class OptionsDialog(QFrame):
         
     def fadeOut(self):
         self.status.setWindowOpacity(self.status.windowOpacity() - 0.1)
-
-
-#app = QApplication(sys.argv)
-#app.setStyle('plastique')
-#
-#from srsManager import srsScheduler
-#srsStub = srsScheduler()
-#srsStub.initializeCurrentSession('kanji', 300)
-##srsStub = ()    #for testing purposes
-##optionsStub = ()
-#from optionsBackend import Options
-#optionsStub = Options()
-#options = OptionsDialog(srsStub.db, optionsStub)
-#options.show()
-#
-#sys.exit(app.exec_())
