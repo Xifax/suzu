@@ -13,7 +13,7 @@ from PySide.QtGui import *
 from PySide.QtWebKit import *
 
 # own
-from settings.constants import NAVER_IMAGE_SEARCH
+from settings.constants import NAVER_IMAGE_SEARCH, W_HEIGHT, W_WIDTH
 
 class WebPage(QWidget):
     def __init__(self, parent=None):
@@ -40,6 +40,10 @@ class WebPage(QWidget):
     def initComposition(self):
         self.setWindowFlags(Qt.WindowMaximizeButtonHint & Qt.WindowMinimizeButtonHint)
         self.setWindowTitle('Naver image search')
+        self.setMinimumSize(W_WIDTH, W_HEIGHT)
+        
+        desktop = QApplication.desktop().screenGeometry()
+        self.move((desktop.width() - W_WIDTH)/2, (desktop.height() - W_HEIGHT)/2)
     
     def initComponents(self):
         self.layout.setMargin(0)

@@ -250,19 +250,24 @@ class StatusFilter(QObject):
     def eventFilter(self, object, event):
         
         if event.type() == QEvent.HoverEnter:
-            object.setWindowOpacity(0.80)
+            object.setWindowOpacity(0.90)
+            object.progress.setValue(object.achievements.score)
             
+            if object.achievements.achieved is not None:
+                object.progress.setMaximum(object.achievements.threshold)
+            else:
+                object.progress.show()
+            object.activateWindow()
+
         if event.type() == QEvent.HoverLeave:
             object.setWindowOpacity(1)
-            
+            object.progress.hide()
+
         if event.type() == QEvent.MouseButtonPress:
             if event.button() == Qt.LeftButton:
-#                object.info.setText(object.achievements.randomBijin()[1])
-#                object.info.show()
-#                object.progress.show()
-#                object.setMask(roundCorners(object.rect(),5))
-#                object.move( object.x(), object.y() - 30 )
-                pass
+                if object.achievements.achieved is not None:
+                    object.web.searchImages(object.achievements.achieved[1])
+                    object.web.show()
             elif event.button() == Qt.RightButton:
                 object.hide()
             
@@ -540,11 +545,13 @@ class Quiz(QFrame):
         self.status.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.status.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         self.status.setGeometry(QRect(desktop.width() - H_INDENT, desktop.height() - V_INDENT - S_HEIGHT - S_INDENT - S_CORRECTION, S_WIDTH, S_HEIGHT))
+        self.status.setMinimumSize(S_WIDTH, S_HEIGHT)
+#        self.status.setMinimumWidth(S_WIDTH)
         
         self.status.setStyleSheet("QWidget { background-color: rgb(255, 255, 255); }")
         
         self.setMask(roundCorners(self.rect(),5))
-        self.status.setMask(roundCorners(self.status.rect(),5))
+#        self.status.setMask(roundCorners(self.status.rect(),5))
         #self.info.setMask(roundCorners(self.info.rect(),5))
         #self.allInfo.setMask(roundCorners(self.allInfo.rect(),5))
         
@@ -583,7 +590,19 @@ class Quiz(QFrame):
         self.status.message.setFont(QFont('Cambria', self.options.getMessageFontSize()))
         self.status.layout.setAlignment(Qt.AlignCenter)
         self.status.message.setWordWrap(False)
+        self.status.message.setAlignment(Qt.AlignCenter)
         self.status.layout.setMargin(0)
+        
+        self.status.info.setHidden(True)
+        self.status.progress.setHidden(True)
+        self.status.progress.setMaximumHeight(10)
+        self.status.progress.setRange(0, self.status.achievements.threshold)
+        self.status.layout.setAlignment(Qt.AlignCenter)
+        self.status.info.setAlignment(Qt.AlignCenter)
+        self.status.info.setFont(QFont(Fonts.RyuminPr5, 13))
+        self.status.info.setWordWrap(False)
+        
+        self.status.gem = self.status.saveGeometry()
         
         self.info.item.setFont(QFont(Fonts.HiragiNoMyoutyouProW3, 36))
         self.info.reading.setFont(QFont(Fonts.HiragiNoMyoutyouProW3, 16))
@@ -612,10 +631,6 @@ class Quiz(QFrame):
         self.kanjiGroups.info.setAlignment(Qt.AlignCenter)
         self.kanjiGroups.info.setWordWrap(True)
         self.kanjiGroups.layout.setMargin(0)
-        
-        self.status.info.setHidden(True)
-        self.status.progress.setHidden(True)
-        self.status.progress.setMaximumHeight(12)
         
         #NB: ...
         self.answered.setMaximumWidth(D_WIDTH)
@@ -693,7 +708,7 @@ class Quiz(QFrame):
         
         columns_mod = 0
         #font size depending on sentence length
-        if len(self.srs.currentExample.sentence) > SENTENCE_MAX: font =  QFont(self.options.getSentenceFont(), MIN_FONT_SIZE); columns_mod = 8
+        if len(self.srs.currentExample.sentence) > SENTENCE_MAX: font =  QFont(self.options.getSentenceFont(), MIN_FONT_SIZE); columns_mod = 6
         else: font = QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize())
         
         #row, column, rows span, columns span, max columns
@@ -751,7 +766,7 @@ class Quiz(QFrame):
     def beginCountdown(self):
         self.trayIcon.setToolTip('Quiz in progress!')
         self.pauseAction.setText('&Pause')
-        self.pauseAction.setShortcut('P')
+#        self.pauseAction.setShortcut('P')
         
         self.countdownTimer.start(self.options.getCountdownInterval() * 1000)
 
@@ -806,7 +821,7 @@ class Quiz(QFrame):
         self.optionsAction.setIcon(QIcon(PATH_TO_RES + TRAY + OPTIONS_ICON))
         self.trayMenu.addAction(self.optionsAction)
         
-        self.quickLoadAction = QAction('&Quick &load', self, triggered=self.showQuickLoad)
+        self.quickLoadAction = QAction('Quick &load', self, triggered=self.showQuickLoad)
         self.quickLoadAction.setIcon(QIcon(PATH_TO_RES + TRAY + LOAD_ICON))
         self.trayMenu.addAction(self.quickLoadAction)
         
@@ -820,7 +835,7 @@ class Quiz(QFrame):
         self.globalStatsAction.setIcon(QIcon(PATH_TO_RES + TRAY + STAT_ICON))
         self.trayMenu.addAction(self.globalStatsAction)
         
-        self.utilAction = QAction('&Utilities', self, triggered=self.showToolsDialog)
+        self.utilAction = QAction('U&tilities', self, triggered=self.showToolsDialog)
         self.utilAction.setIcon(QIcon(PATH_TO_RES + TRAY + UTILS_ICON))
         self.trayMenu.addAction(self.utilAction)
         
@@ -834,7 +849,6 @@ class Quiz(QFrame):
         self.trayIcon.setContextMenu(self.trayMenu)
         self.trayIcon.activated.connect(self.onTrayIconActivated)
 
-    #TODO: show session statistics
     def onTrayIconActivated(self, reason):
         '''
         if reason == QSystemTrayIcon.DoubleClick:
@@ -897,6 +911,11 @@ class Quiz(QFrame):
         
         self.getReadyPostLayout()
         
+    def refocusQuiz(self):
+        self.answered.setShortcut('Space')
+        self.activateWindow()
+        self.answered.setFocus()
+        
     def correctAnswer(self):
         self.postAnswerActions()
         
@@ -904,13 +923,12 @@ class Quiz(QFrame):
         self.stats.quizAnsweredCorrect()
         
         self.checkTranslationSize(self.srs.getCurrentSentenceTranslation())
-        
+
+        self.status.achievements.correctAnswer()
         self.showSessionMessage(u'<font color=green>Correct: ' + self.srs.getCorrectAnswer() + '</font>\t|\tNext quiz: ' + self.srs.getNextQuizTime() 
                                 + '\t|\t<font color=' + self.srs.getLeitnerGradeAndColor()['color'] +  '>Grade: ' + self.srs.getLeitnerGradeAndColor()['grade'] 
                                 + ' (' + self.srs.getLeitnerGradeAndColor()['name'] + ')<font>')
-        
-        #self.answered.setShortcut('5')
-        #self.setFocus()
+        self.refocusQuiz()
         
     def wrongAnswer(self):
         self.postAnswerActions()
@@ -920,9 +938,11 @@ class Quiz(QFrame):
         
         self.checkTranslationSize(self.srs.getCurrentSentenceTranslation())
         
+        self.status.achievements.wrongAnswer()
         self.showSessionMessage(u'<font color=tomato>Wrong! Should be: '+ self.srs.getCorrectAnswer() + '</font>\t|\tNext quiz: ' + self.srs.getNextQuizTime()
                                 + '\t|\t<font color=' + self.srs.getLeitnerGradeAndColor()['color'] +  '>Grade: ' + self.srs.getLeitnerGradeAndColor()['grade'] 
                                 + ' (' + self.srs.getLeitnerGradeAndColor()['name'] + ')<font>')
+        self.refocusQuiz()
             
     def timeIsOut(self):
         self.stats.musingsStopped()
@@ -936,9 +956,11 @@ class Quiz(QFrame):
 
         self.checkTranslationSize(self.srs.getCurrentSentenceTranslation())
         
+        self.status.achievements.wrongAnswer()
         self.showSessionMessage(u'<font color=tomato>Timeout! Should be: ' + self.srs.getCorrectAnswer() + '</font>\t|\tNext quiz: ' + self.srs.getNextQuizTime()
                                 + '\t|\t<font color=' + self.srs.getLeitnerGradeAndColor()['color'] +  '>Grade: ' + self.srs.getLeitnerGradeAndColor()['grade'] 
                                 + ' (' + self.srs.getLeitnerGradeAndColor()['name'] + ')<font>')    
+        self.refocusQuiz()
         
     def checkTranslationSize(self, translation):
         if len(translation) > TRANSLATION_CHARS_LIMIT:
@@ -976,6 +998,7 @@ class Quiz(QFrame):
                 self.trayIcon.setToolTip('Quiz paused!')
                 
                 self.trayIcon.setIcon(QIcon(PATH_TO_RES + TRAY + 'inactive.png'))
+                self.trayUpdater.cancel()
                 self.pauseAction.setIcon(QIcon(PATH_TO_RES + TRAY + START_ICON))
                 self.stats.pauseStarted()
                 
@@ -1009,6 +1032,7 @@ class Quiz(QFrame):
             self.setButtonsActions()
             
             #self.restoreGeometry(self.gem)
+            self.trayIcon.setIcon(QIcon(PATH_TO_RES + TRAY + 'active.png'))
             
             self.show()
             self.setWindowOpacity(0)
@@ -1056,8 +1080,20 @@ class Quiz(QFrame):
     def showSessionMessage(self, message):
         """Shows info message"""
         self.status.message.setText(message)
+        if self.status.achievements.achieved is not None:
+            self.status.info.setText(self.status.achievements.achieved[1] + '\t( ' + self.status.achievements.achieved[0] + ' )')
+            self.status.progress.hide()
+            self.status.move(self.status.x(), self.status.y() - 15)
+            self.status.info.show()
+#            self.status.setMask(roundCorners(self.status.rect(),5))
+        else:
+            self.status.info.setText(u'')
+            self.status.info.hide()
+            self.status.restoreGeometry(self.status.gem)
+#            self.status.setMask(roundCorners(self.status.rect(),5))
+#        print self.status.y()
+        self.status.adjustSize()
         self.status.show()
-        #self.setFocus() #NB: does not work
  
     def saveAndExit(self):
         self.hide()
@@ -1094,7 +1130,7 @@ class Quiz(QFrame):
         self.updater = updater
         self.tools = tools
         self.statistics = statistics
-        self.web = web
+        self.status.web = web
         
     def initGlobalHotkeys(self):
         def toggleWidgetFlag(): self.qdict.showQDict = True

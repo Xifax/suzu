@@ -110,5 +110,5 @@ class About(QFrame):
         self.aboutApp.setAlignment(Qt.AlignCenter)
         self.about.setAlignment(Qt.AlignCenter)
         
-        self.closeAbout.setText(u'善し！')
+        self.closeAbout.setText(u'よし！')
         self.closeAbout.setFont(QFont(Fonts.HiragiNoMyoutyouProW3, 18))

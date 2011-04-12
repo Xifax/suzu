@@ -30,26 +30,20 @@ class Achievements:
         if self.score == self.threshold:
             self.threshold *= 2
             self.achieved = self.randomBijin()
-#            return self.randomBijin()
         else:
             self.achieved = None
         
     def wrongAnswer(self):
         self.score -= 1
         
-#    def achievedCheck(self):
-#        return self.achieved
-    
     def randomBijin(self):
         tries = 0
-#        new_bijin = None
         
         while tries <= len(BIJIN.keys()):
             index = random.randrange(1, len(BIJIN.keys()))
                                      
             if index not in self.alreadySeen:
                 break
-#                new_bijin = BIJIN[index]
             else:
                 tries += 1
                 

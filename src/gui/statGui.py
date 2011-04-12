@@ -19,7 +19,7 @@ class StatsInfo(QDialog):
         self.db = db
         
         self.info = QLabel(u'')
-        self.closeStats = QPushButton('I have seen enough')
+        self.closeStats = QPushButton("I've seen enough")
         
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.info)

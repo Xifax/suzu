@@ -140,10 +140,10 @@ class QuickDictionary(QFrame):
         #self.setStyleSheet("QWidget { background-color: rgb(255, 255, 255); }")
         
         desktop = QApplication.desktop().screenGeometry()
-        self.move(desktop.width() - Q_WIDTH - 15, desktop.height() - Q_HEIGTH - 10)
+        self.move(desktop.width() - Q_WIDTH - 15, desktop.height() - Q_HEIGTH - 57)
         
         self.setMinimumWidth(Q_WIDTH)
-        #self.setMinimumHeight(Q_HEIGTH)
+        self.setMinimumHeight(Q_HEIGTH)
         
         self.itemsMenu.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint )
         self.itemsMenu.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)

@@ -37,7 +37,7 @@ G_INDENT = 2
 
 # status dialog
 S_WIDTH = D_WIDTH
-S_HEIGHT = 30
+S_HEIGHT = 40
 S_INDENT = I_INDENT
 S_CORRECTION = 0
 
@@ -55,8 +55,8 @@ OS_INDENT = 2
 
 # quick dictionary        
 Q_WIDTH = 700
-Q_HEIGTH = 305
-Q_INDENT = 400
+Q_HEIGTH = 365
+Q_INDENT = Q_WIDTH - 300
 Q_VINDENT = 56
 Q_SPACE = 30
 
@@ -67,6 +67,10 @@ T_HEIGHT = 300
 # quick load
 L_WIDTH = 180
 L_HEIGHT = 220
+
+# browser
+W_WIDTH = 800
+W_HEIGHT = 600
 
 ###########################
 ### paths and resources ###
@@ -175,4 +179,5 @@ BIJIN = {
          3: (u'Horikita Maki', u'堀北真希'),
          4: (u'Kago Ai', u'加護亜依'),
          5: (u'Isihara Satomi', u'石原さとみ')
+         #原幹恵
          }

@@ -82,3 +82,6 @@ class Stats():
         
     def pauseEnded(self):
         self.totalPauseTime += datetime.now() - self.startPause
+
+    def calculateActiveTime(self):
+        self.totalQuizActiveTime = self.totalPostQuizTime + self.totalMusingsTime

@@ -227,6 +227,7 @@ class OptionsDialog(QFrame):
         self.toolbox.addItem(self.srsGroup, 'Spaced Repetition System')
         self.toolbox.addItem(self.dictGroup, 'Dictionaries')
         self.toolbox.addItem(self.dbGroup, 'Studying items')
+#        self.toolbox.setCurrentIndex(-1)
         
         ### main layout ###
         self.mainLayout = QVBoxLayout()
