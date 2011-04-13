@@ -466,7 +466,14 @@ class OptionsDialog(QFrame):
                         % (self.dbItems[modes.kanji.key] + self.dbItems[modes.words.key])  )
         
     def updateSessionLimits(self):
-        self.sessionItemsSpin.setRange(1, self.dbItems[modes.kanji.key] + self.dbItems[modes.words.key])
+#        self.sessionItemsSpin.setRange(1, self.dbItems[modes.kanji.key] + self.dbItems[modes.words.key])
+        if self.sessionModeCombo.currentText() == modes.kanji.key:
+            self.sessionItemsSpin.setRange(1, self.dbItems[modes.kanji.key])
+        elif self.sessionModeCombo.currentText() == modes.words.key:
+            self.sessionItemsSpin.setRange(1, self.dbItems[modes.words.key])
+        elif self.sessionModeCombo.currentText() == modes.all.key:
+            self.sessionItemsSpin.setRange(1, self.dbItems[modes.kanji.key] + self.dbItems[modes.words.key])
+    
         self.sessionLengthSpin.setRange(1, 4 * (self.dbItems[modes.kanji.key] + self.dbItems[modes.words.key]))
         
     def updateTotalItems(self):

@@ -196,6 +196,17 @@ class DBoMagic:
         
     def getAllSessions(self):
         return Session.query.all()
+    
+    def getProblematicItems(self):
+        selection = Kanji.query.filter(Kanji.wrong_in_current_session > 0).all()
+        if len(selection) > 0:
+            mean_times_wrong = sum([kanji.wrong_in_current_session for kanji in selection])/len(selection)
+#            resulting_items = [kanji for kanji in selection, kanji in selection if kanji.wrong_in_current_session > mean_times_wrong ]
+            resulting_items = [kanji for kanji in selection if kanji.wrong_in_current_session > mean_times_wrong ]
+            
+            if len(resulting_items) == 0: return selection
+            else: return resulting_items
+        else: return None
 
     def updateQuizItem(self, item):
         session.commit()

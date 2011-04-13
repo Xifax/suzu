@@ -107,6 +107,7 @@ from gui.guiQuick import QuickDictionary
 from gui.guiTools import Tools
 from gui.guiWeb import WebPage
 from gui.statGui import StatsInfo
+from gui.guiRehash import QuizRehash
 from utilities.utils import BackgroundDownloader
 from utilities.log import log
 from settings.optionsBackend import Options
@@ -140,9 +141,10 @@ if __name__ == '__main__':
     tools = Tools()
     web = WebPage()
     statistics = StatsInfo(quiz.srs.db)
+    rehash = QuizRehash(quiz.srs.db)
     
     # initializing references and hotkeys #
-    quiz.addReferences(about, options, qdict, updater, tools, statistics, web)
+    quiz.addReferences(about, options, qdict, updater, tools, statistics, web, rehash)
     quiz.initGlobalHotkeys()
     
     try:

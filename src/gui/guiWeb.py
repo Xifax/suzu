@@ -73,6 +73,9 @@ class WebPage(QWidget):
         
     def showEvent(self, event):
         self.web.hide()
+    #NB: ...
+    def closeEvent(self, event):
+        self.hide()
 
 if __name__ == '__main__':
 

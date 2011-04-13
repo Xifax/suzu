@@ -30,6 +30,7 @@ class Achievements:
         if self.score == self.threshold:
             self.threshold *= 2
             self.achieved = self.randomBijin()
+            self.score = 0
         else:
             self.achieved = None
         

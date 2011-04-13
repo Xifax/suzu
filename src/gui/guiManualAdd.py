@@ -14,6 +14,8 @@ from PySide.QtGui import *
 from PySide.QtCore import *
 from bzrlib.graph import SearchResult
 
+#TODO: make kanji copiable
+
 class ManualAdd(QDialog):
     def __init__(self, db,  parent=None):
         super(ManualAdd, self).__init__(parent)
@@ -21,10 +23,6 @@ class ManualAdd(QDialog):
         # internal references #
         self.problemKanji = None
         self.db = db
-        
-        # flags #
-#        self.setInactive = False
-#        self.addedExamples = False
         
         self.mainLayout = QGridLayout()
         
@@ -121,9 +119,6 @@ class ManualAdd(QDialog):
         '''Also updates dialog contens'''
         self.problemKanji = kanji
         
-#        self.addedExamples = False
-#        self.setInactive = False
-        
         self.infoLabel.setText("Alas, there were no examples for item <font style='font-family:" + Fonts.TukusiMyoutyouProLB + ";font-size: 16pt'>" 
                                + kanji.character + "</font> on the internets.")
         
@@ -199,17 +194,12 @@ class ManualAdd(QDialog):
                     
         if len(examples) > 0:
             self.db.addExamplesForKanji(self.problemKanji, examples)
-            #self.addExample = True
-            #self.hide()
             self.done(0)
         else:
             QMessageBox.information(self, u'Failure', u'No examples added')
-            #self.addedExamples = False
             
     def setInactiveAndClose(self):
         self.db.toggleActive(self.problemKanji)
-        #self.setInactive = True
-        #self.close()
         self.done(1)
         
     def findExamplesUsingJishoClient(self):
@@ -237,45 +227,3 @@ class ManualAdd(QDialog):
         self.buttonAdd.click()
         
         self.adjustSize()
-        
-#import sys
-#app = QApplication(sys.argv)
-#app.setStyle('plastique')
-#
-##stubs
-#srsStub = ()
-###from db import DictionaryLookup
-##from db import *
-##qdict = DictionaryLookup()
-###qdict.loadJmdictFromDumpRegex() #for test purposes
-##'''
-##test = qdict.lookupItemByReading(u'いやいや')
-##test = qdict.looseLookupByReading(u'いやいや')
-##test = qdict.looseLookupByReadingJoin(u'か')
-##'''
-##from pkg_resources import resource_filename #por qua thou err like t'ese?
-##from cjktools.resources import auto_format
-##from cjktools.resources import kanjidic
-#
-##from optionsBackend import Options
-#
-##options = Options()
-#
-##edict_file = resource_filename('cjktools_data', 'dict/je_edict')
-##edict = auto_format.load_dictionary(edict_file)
-##
-##kdict = kanjidic.Kanjidic()
-#
-#from srs.srsManager import srsScheduler
-#
-##srs = srsScheduler()
-##srs.initializeCurrentSession('kanji', 300)
-#
-##ma = ManualAdd(srs.db)
-#ma = ManualAdd(srsStub)
-#kanji = QObject()
-#kanji.character = u'儚'
-#ma.setProblemKanji(kanji)
-##ma.showQDict = True
-#ma.show()
-#sys.exit(app.exec_())

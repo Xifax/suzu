@@ -1100,8 +1100,10 @@ class Quiz(QFrame):
         self.status.hide()
         self.allInfo.hide()
         self.kanjiInfo.hide()
+        
+        self.rehash.checkSessionResults()
+        
         self.trayIcon.showMessage('Shutting down...', 'Saving session', QSystemTrayIcon.MessageIcon.Information, 20000 )
-        #self.startTrayLoading()
         
         if self.countdownTimer.isActive():
                 self.countdownTimer.stop()
@@ -1123,7 +1125,7 @@ class Quiz(QFrame):
         self.qdict.close()
         self.close()        
         
-    def addReferences(self, about, options, qdict, updater, tools, statistics, web):
+    def addReferences(self, about, options, qdict, updater, tools, statistics, web, rehash):
         self.about = about
         self.optionsDialog = options
         self.qdict = qdict
@@ -1131,6 +1133,7 @@ class Quiz(QFrame):
         self.tools = tools
         self.statistics = statistics
         self.status.web = web
+        self.rehash = rehash
         
     def initGlobalHotkeys(self):
         def toggleWidgetFlag(): self.qdict.showQDict = True
