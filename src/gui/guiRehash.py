@@ -6,7 +6,7 @@ Created on Apr 13, 2011
 '''
 
 # internal #
-from itertools import combinations
+#from itertools import combinations
 
 # external #
 from PySide.QtCore import *
@@ -21,7 +21,7 @@ from settings.constants import *
 from settings.fonts import Fonts
 from mParser.mecabTool import MecabTool
 from utilities.log import log
-from utilities.utils import findCommonSubstring
+#from utilities.utils import findCommonSubstring
 
 class Filter(QObject):
     def eventFilter(self, object, event):
@@ -44,11 +44,12 @@ class Filter(QObject):
         return False
 
 class QuizRehash(QDialog):
-    def __init__(self, db, kjd, parent=None):
+    def __init__(self, db, kjd, edict, parent=None):
         super(QuizRehash, self).__init__(parent)
         
         self.db = db
         self.kjd = kjd
+        self.edict = edict
         
         self.info = QLabel('Would you like to review problematic items?')
         self.yes = QPushButton('Okay')
@@ -122,9 +123,9 @@ class QuizRehash(QDialog):
         
     #-------------- actions -------------#
     
-    def parseReadings(self, items):
+    def parseReadings(self):
         items_grouped = {}
-        for kanji in items:
+        for kanji in self.items:
             readings = {}
             try:
                 lookup = self.kjd[kanji.character]
@@ -155,7 +156,8 @@ class QuizRehash(QDialog):
                 if items_grouped.has_key(kanji.character): items_grouped[kanji.character + '_' + str(i)] = (reading, readings[reading]); i += 1
                 else: items_grouped[kanji.character] = (reading, readings[reading])
             
-        return items_grouped
+#        return items_grouped
+        self.items = items_grouped
             
             
 #            for word in kanji.word:
@@ -178,8 +180,9 @@ class QuizRehash(QDialog):
 #            print ' '.join(variants)
     
     def checkSessionResults(self):
-        self.items = self.parseReadings(self.db.getProblematicItems())
+        self.items = self.db.getProblematicItems()
         if self.items is not None:
+            self.parseReadings()
             self.items_iterator = iter(self.items)
             self.items_to_delete = []
             self.exec_()
@@ -218,18 +221,37 @@ class QuizRehash(QDialog):
         if answer == self.items[self.current_item][0]:
             self.mark.setStyleSheet('QLabel { background-color: green; border-radius: 4px; }')
             self.mark.setText('Correct!')
+            
             self.result = True
             self.correct += 1
             if self.items.has_key(self.current_item):
                 self.items_to_delete.append(self.current_item)
+                
+            self.updateCompounds()
+            
         else:
             self.mark.setStyleSheet('QLabel { background-color: red; border-radius: 4px; }')
             self.mark.setText('Wrong!(' + self.items[self.current_item][0] + ')')
             self.result = False
             self.wrong += 1
             
+            self.updateCompounds()
+            
         self.reading.hide()
         self.mark.show()
+        
+    def updateCompounds(self):
+        compounds = u''
+        for compound in self.items[self.current_item][1]:
+            compounds += compound + u'\t～\t'
+            try:
+                lookup = self.edict[compound]
+                compounds += lookup.readings[0] + '<br/>'
+                compounds += "<font style='font-family: Calibri; font-size: 11pt'>" + ", ".join(lookup.senses).rstrip(",(P)") + "</font><br/>"
+            except Exception, e:
+                log.error(e)
+        self.compounds.setText(compounds)
+        self.adjustSize()
             
     def continueReview(self):
         self.mark.hide()

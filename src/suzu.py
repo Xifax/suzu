@@ -141,7 +141,7 @@ if __name__ == '__main__':
     tools = Tools()
     web = WebPage()
     statistics = StatsInfo(quiz.srs.db)
-    rehash = QuizRehash(quiz.srs.db, quiz.kjd)
+    rehash = QuizRehash(quiz.srs.db, quiz.kjd, quiz.edict)
     
     # initializing references and hotkeys #
     quiz.addReferences(about, options, qdict, updater, tools, statistics, web, rehash)
