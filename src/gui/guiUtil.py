@@ -6,7 +6,7 @@ Created on Mar 2, 2011
 '''
 
 # external #
-from PySide.QtCore import QRect, QSize
+from PySide.QtCore import QRect, QSize, QObject, QEvent, Signal
 from PySide.QtGui import QRegion
 
 def roundCorners(rectangle, radius):
@@ -41,3 +41,22 @@ def unfillLayout(layoutName):
                 else: 
                     deleteItems(item.layout()) 
     deleteItems(layoutName) 
+    
+def clickable(widget):
+    '''Add clicked event to widget'''
+    class Filter(QObject):
+    
+        clicked = Signal()
+        
+        def eventFilter(self, obj, event):
+        
+            if obj == widget:
+                if event.type() == QEvent.MouseButtonRelease:
+                    self.clicked.emit()
+                    return True
+            
+            return False
+    
+    filter = Filter(widget)
+    widget.installEventFilter(filter)
+    return filter.clicked

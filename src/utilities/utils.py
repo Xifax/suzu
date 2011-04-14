@@ -16,6 +16,15 @@ import win32con
 
 from threading import Thread, Event
 
+def findCommonSubstring(data):
+    substr = ''
+    if len(data) > 1 and len(data[0]) > 0:
+        for i in range(len(data[0])):
+            for j in range(len(data[0])-i+1):
+                if j > len(substr) and all(data[0][i:i+j] in x for x in data):
+                    substr = data[0][i:i+j]
+    return substr
+
 class BackgroundDownloader(Thread):
     '''It seems, such implementation does not cause slight lags in qt (as opposed to QThread one)'''
     def __init__(self, pause):
