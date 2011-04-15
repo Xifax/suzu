@@ -247,11 +247,12 @@ class QuizRehash(QDialog):
             try:
                 lookup = self.edict[compound]
                 compounds += lookup.readings[0] + '<br/>'
-                compounds += "<font style='font-family: Calibri; font-size: 11pt'>" + ", ".join(lookup.senses).rstrip(",(P)") + "</font><br/>"
+                compounds += "<i><font style='font-family: Calibri; font-size: 11pt'>" + ", ".join(lookup.senses).rstrip(",(P)") + "</font></i><br/>"
             except Exception, e:
                 log.error(e)
         self.compounds.setText(compounds)
         self.adjustSize()
+        self.centerWidget()
             
     def continueReview(self):
         self.mark.hide()
@@ -289,6 +290,7 @@ class QuizRehash(QDialog):
         finally:
             return current_item
         
-#    def showEvent(self, event):
-        
+    def centerWidget(self):
+        desktop = QApplication.desktop().screenGeometry()
+        self.move((desktop.width() - self.width())/2, (desktop.height() - self.height())/2)
     

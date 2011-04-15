@@ -3,7 +3,7 @@
 Created on Mar 19, 2011
 
 @author: Yadavito
-@version: 0.0.3
+@version: 0.0.4
 @license: GPL v3
 @requires: Python 2.6.6
 @requires: PySide 1.0.0

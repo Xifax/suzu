@@ -442,44 +442,12 @@ class DBoMagic:
             jlptGrade = int(jlptGrade)
             if 0 < jlptGrade < 5:
                 selection = self.db.character.filter(self.db.character.jlpt==jlptGrade).all()
-                #TODO: add or_ for grade, jlpt and frequency
                 #time for next quiz
                 now = datetime.now()
                 
                 jlpt = u'jlpt' + str(jlptGrade)
                 
                 for kanji in selection:
-                    # VERY time consuming
-                    #_now = time.time()
-                    # in theory, it can be thrown away
-                    '''
-                    readings_kun = self.db.reading.filter(and_(self.db.reading.fk==kanji.id, self.db.reading.type=='ja_kun')).all()
-                    readings_on = self.db.reading.filter(and_(self.db.reading.fk==kanji.id, self.db.reading.type=='ja_on')).all()
-                    meaning = self.db.meaning.filter(and_(self.db.meaning.fk==kanji.id, self.db.meaning.lang=='en')).all()
-                    #_after = time.time()
-                    
-                    #sum += _after - _now
-                    #print _after - _now
-                
-                    kun_string = u''
-                    on_string = u''
-                    meaning_string = u''
-                
-                    if len(readings_kun) > 0:
-                        for kun in readings_kun:
-                            kun_string += kun.value + ';'
-                        
-                    if len(readings_on) > 0:
-                        for on in readings_on:
-                            on_string += on.value + ';'
-                    
-                    if len(meaning) > 0:
-                        for m in meaning:
-                            meaning_string += m.value + ';'
-                
-                    Kanji(character = kanji.literal, tags = jlpt, reading_kun = kun_string, reading_on = on_string, meaning = meaning_string, 
-                          next_quiz = now, leitner_grade = Leitner.grades.None.index, active = True, current_session = False, been_in_session = 0)
-                    '''
                     #check if already exists    (time consuming?)
                     #if len(Kanji.query.filter_by(character = kanji.literal).all()) == 0:
                     if session.query(Kanji).filter_by(character = kanji.literal).count()  == 0:
@@ -498,7 +466,6 @@ class DBoMagic:
         return success
             
     def countTotalItemsInDb(self):
-#        return { 'kanji' : Kanji.query.count(), 'words': Word.query.count() }
         return { modes.kanji.key : Kanji.query.count(), modes.words.key: Word.query.count() }
     
     def countItemsByGrades(self):
@@ -517,7 +484,15 @@ class DBoMagic:
             if i > 9 : break
             else: i = i + 1
             
+        results[u'user'] = session.query(Kanji).filter(Kanji.tags.like(u'user')).count()
+            
         return results
+    
+    def countItemsByTags(self):
+#        results = {}
+        jlpt = u'jlpt'
+        grade = u'grade'
+        return session.query(Kanji).filter(or_(Kanji.tags.like(u'%' + jlpt + '%' ), Kanji.tags.like(u'%' + grade + '%' ))).count()  
     
     def toggleActive(self, item):
         item.active = not item.active

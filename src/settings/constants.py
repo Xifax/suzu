@@ -106,7 +106,7 @@ UTILS_ICON = 'utils.png'
 ### version information ###
 ###########################
 
-__version__ = '0.0.3'       #beware: is not imported with '*'
+__version__ = '0.0.4'       #beware: is not imported with '*'
 __application__ = 'suzu'    #輪廻／りんね or 鈴ね
 
 ###########################

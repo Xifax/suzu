@@ -429,17 +429,21 @@ class OptionsDialog(QFrame):
     def updateDbTable(self):
         self.tagsView.clearContents()
         self.tagsView.setRowCount(0)
-        #TODO: scan db for all possible tags, not just predefined
+        
         dbStats = self.db.countItemsByGrades()
         i = 0
         for item in dbStats:
             if dbStats[item] != 0:
                 self.tagsView.insertRow(i)
-                grade = item[-1:];  level = u''
-                if grade == 0: 
-                    grade = 10; level = item[:-2]
+                if item != u'user':
+                    grade = item[-1:];  level = u''
+                    if grade == 0: 
+                        grade = 10; level = item[:-2]
+                    else:
+                        level = item[:-1]
                 else:
-                    level = item[:-1]
+                    grade = u'*'
+                    level = u'user'
                 
                 self.tagsView.setItem(i, 0, QTableWidgetItem(level));
                 self.tagsView.setItem(i, 1, QTableWidgetItem(str(grade)))
@@ -452,11 +456,26 @@ class OptionsDialog(QFrame):
 
                 self.tagsView.setItem(i, 3, checkedItem)
                 i = i + 1
-                
-        for row in range(0, self.tagsView.rowCount()):
-            column = 0
-            for column in range(0, self.tagsView.columnCount()):
-                self.tagsView.item(row, column).setTextAlignment(Qt.AlignCenter)
+
+#        else:
+#        dbStats = self.db.countItemsByTags()
+#        i = 0
+#        if dbStats != 0:
+#            self.tagsView.setItem(i, 0, QTableWidgetItem('user'));
+#            self.tagsView.setItem(i, 1, QTableWidgetItem('-'))
+#            self.tagsView.setItem(i, 2, QTableWidgetItem(str(dbStats)))
+#            
+#            checkedItem = QTableWidgetItem();  checkedItem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled | Qt.ItemIsSelectable);
+#
+#            if self.db.checkIfActive('user'):  checkedItem.setCheckState(Qt.Checked)
+#            else: checkedItem.setCheckState(Qt.Unchecked)
+#
+#            self.tagsView.setItem(i, 3, checkedItem)
+#                
+#        for row in range(0, self.tagsView.rowCount()):
+#            column = 0
+#            for column in range(0, self.tagsView.columnCount()):
+#                self.tagsView.item(row, column).setTextAlignment(Qt.AlignCenter)
 
         self.tagsView.resizeColumnsToContents()
         self.tagsView.resizeRowsToContents()
@@ -491,24 +510,21 @@ class OptionsDialog(QFrame):
             self.sessionItemsSpin.setToolTip('Max items: <b>' + str(self.dbItems[modes.kanji.key] + self.dbItems[modes.words.key]) + '<b/>')
     
     def updateDB(self):
-        #self.progressDb.show()
-        #self.showInfo('Updating database, please wait...')
         if self.comboTag.currentText() == 'jlpt':
+#            if self.db.addItemsToDbJlpt(int(self.comboLevel.currentText())):
             if self.db.addItemsToDbJlpt(int(self.comboLevel.currentText())):
                 self.showInfo('Successfully updated database.')
         elif self.comboTag.currentText() == 'grade':
-            print 'unimplemented, yet'
-            
+            if self.db.addItemsToDbGrade(int(self.comboLevel.currentText())):
+                self.showInfo('Successfully updated database.')
         self.updateDbTable()
         self.updateTotalItems()
-        #self.progressDb.hide()
         
     def updateActiveItems(self):
         for i in range(0, self.tagsView.rowCount()):
             try:
                 self.db.updateActive(self.tagsView.item(i, 0).text() + self.tagsView.item(i, 1).text(), self.tagsView.item(i, 3).checkState() == Qt.CheckState.Checked)
             except:
-                #pass
                 sys.exc_clear()
             
     def updateDbByTags(self):
