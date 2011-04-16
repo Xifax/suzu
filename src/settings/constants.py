@@ -178,6 +178,20 @@ BIJIN = {
          2: (u'Isihara Satomi', u'石原さとみ'),
          3: (u'Horikita Maki', u'堀北真希'),
          4: (u'Kago Ai', u'加護亜依'),
-         5: (u'Isihara Satomi', u'石原さとみ')
-         #原幹恵
+         5: (u'Isihara Satomi', u'石原さとみ'),
+         6: (u'Hara Mikie', u'原幹恵'),
+         7: (u'Nagasawa Masami', u'長澤まさみ'),
+         8: (u'Aragaki Yui', u'新垣結衣'),
+         9: (u'Yoshisawa Hitomi', u'吉澤ひとみ'),
+         10: (u'Aibu Saki', u'相武紗季'),
+         11: (u'Nakama Yukie', u'仲間由紀恵'),
+         12: (u'Ueno Juri', u'上野樹里'),
+         13: (u'Ayase Haruka', u'綾瀬 はるか'),
+         14: (u'Bae Doo-na', u'ペ・ドゥナ')
          }
+
+###########################
+###        review       ###
+###########################
+
+MAX_REVIEW_ITEMS = 15

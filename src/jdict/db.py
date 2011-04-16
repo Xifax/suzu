@@ -106,7 +106,11 @@ class DBBackgroundUpdater:
         if item is not None:
             for example in examples:
                 item.example.append(Example(sentence = example,translation = examples[example]))
-            session.commit()
+            try:
+                session.commit()
+            except Exception, e:
+                session.rollback()
+                log.error(e)
     
     def getSomeItem(self):
 #        kanji = Kanji.query.filter_by(current_session = True).order_by(asc(Kanji.next_quiz)).first()
@@ -164,7 +168,11 @@ class DBoMagic:
             item.current_session = True
             item.been_in_session = item.been_in_session + 1     #may be useful later on
             
-        session.commit()
+        try:
+            session.commit()
+        except Exception, e:
+            session.rollback()
+            log.error(e)
 
     def endCurrentSesion(self):
         for kanji in Kanji.query.all():
@@ -174,7 +182,11 @@ class DBoMagic:
             word.current_session = False    
             word.wrong_in_current_session = 0
         
-        session.commit()
+        try:
+            session.commit()
+        except Exception, e:
+            session.rollback()
+            log.error(e)
         
     def saveSessionStats(self, stats):
         stats.calculateActiveTime()
@@ -191,40 +203,33 @@ class DBoMagic:
             Session(date = date.today(), items_correct = stats.answeredCorrect, items_wrong = (stats.totalItemSeen - stats.answeredCorrect),
                     time_running = (datetime.now() - stats.startedQuiz).seconds, time_active = stats.totalQuizActiveTime.seconds, time_paused = stats.totalPauseTime.seconds,
                     times_launched = 1)
-        
-        session.commit()
+        try:
+            session.commit()
+        except Exception, e:
+            session.rollback()
+            log.error(e)
         
     def getAllSessions(self):
         return Session.query.all()
     
     def getProblematicItems(self):
         selection = Kanji.query.filter(Kanji.wrong_in_current_session > 0).all()
-        if len(selection) > 0:
+        if MAX_REVIEW_ITEMS > len(selection) > 0:
             mean_times_wrong = sum([kanji.wrong_in_current_session for kanji in selection])/len(selection)
-#            resulting_items = [kanji for kanji in selection, kanji in selection if kanji.wrong_in_current_session > mean_times_wrong ]
             resulting_items = [kanji for kanji in selection if kanji.wrong_in_current_session > mean_times_wrong ]
             
             if len(resulting_items) == 0: return selection
             else: return resulting_items
+        elif  len(selection) > MAX_REVIEW_ITEMS:
+            return selection
         else: return None
 
     def updateQuizItem(self, item):
-        session.commit()
-    '''    
-    def updateQuizItemByValue(self, itemValue, newGrade, nextQuiz):
-        
-        result = Kanji.query.filter_by(character = itemValue).all()
-        if 2 > len(result) > 0:
-            result[0].leitner_grade = newGrade
-            result[0].next_quiz = nextQuiz
-        else:
-            result = Word.query.filter_by(word = itemValue).all()
-            if 2 > len(result) > 0:
-                result[0].leitner_grade = newGrade
-                result[0].next_quiz = nextQuiz
-                
-        session.commit()
-    '''   
+        try:
+            session.commit()
+        except Exception, e:
+            session.rollback()
+            log.error(e)
     
     def addWordToDbAndLinkToExample(self, kanji, word, sentence):
         if len(word) > 1:
@@ -233,13 +238,21 @@ class DBoMagic:
                     current_session = False, been_in_session = 0)
                 kanji.word.append(newWord)
                 sentence.word.append(newWord)
-                session.commit()
+                try:
+                    session.commit()
+                except Exception, e:
+                    session.rollback()
+                    log.error(e)
     
     def addKanjiToDb(self, character):
         if(len(Kanji.query.filter_by(character = character).all()) == 0):
             Kanji(character = character, tags = u'user', next_quiz = datetime.now(), leitner_grade = Leitner.grades.None.index, active = True, 
                                 current_session = False, been_in_session = 0)
-            session.commit()
+            try:
+                session.commit()
+            except Exception, e:
+                session.rollback()
+                log.error(e)
             
     def addWordToDbByValue(self, word):
         if len(word) > 1:
@@ -249,9 +262,12 @@ class DBoMagic:
                 session.commit()
         
     def addSentenceToDb(self, kanji, sentence, translation):
-        Kanji.query.filter_by(character = kanji).one().example.append(Example(sentence = sentence,translation = translation))          #or get_by
-        #k.example.append(Example(sentence = sentence,translation = translation)) 
-        session.commit()
+        Kanji.query.filter_by(character = kanji).one().example.append(Example(sentence = sentence,translation = translation))
+        try:
+            session.commit()
+        except Exception, e:
+            session.rollback()
+            log.error(e)
         
     def addWordToDb(self, kanji, word):
         """Adds word corresponding to kanji from quiz/example"""
@@ -259,38 +275,26 @@ class DBoMagic:
             if(len(Word.query.filter_by(word = word).all()) == 0):
                 kanji.word.append(Word(word = word, next_quiz = datetime.now(), leitner_grade = Leitner.grades.None.index, active = True, 
                     current_session = False, been_in_session = 0))
-                session.commit()
+                try:
+                    session.commit()
+                except Exception, e:
+                    session.rollback()
+                    log.error(e)
     
     def addExamplesForKanji(self, kanji, examples):
         for example in examples:
             kanji.example.append(Example(sentence = example,translation = examples[example]))
-        session.commit()
+        try:
+            session.commit()
+        except Exception, e:
+            session.rollback()
+            log.error(e)
             
     def getExample(self, kanji):
         examples = kanji.example
         if len(examples) > 0: return examples[randrange(0, len(examples))]
         else: return None
         
-    #TODO: throw away unneeded implementation
-    '''
-    def checkIfKanjiHasExamplesByValue(self, kanjiValue):
-        try:
-            if len(Kanji.query.filter_by(character = kanjiValue).one().example) > 0:
-                return True
-            else: 
-                return False
-        except NoResultFound:
-            return False
-        
-    def checkIfKanjiHasWordsByValue(self, kanjiValue):
-        try:
-            if len(Kanji.query.filter_by(character = kanjiValue).one().word) > 0:
-                return True
-            else: 
-                return False
-        except NoResultFound:
-            return False
-    '''    
     def checkIfKanjiHasWords(self, kanji):
         if len(kanji.word) > 0:
             return True
@@ -460,8 +464,8 @@ class DBoMagic:
                 except IntegrityError:
                     session.rollback()      #is it ok in case just one item err'd?
                     success = False
-        except ValueError:
-            success = False    #TODO: add logger
+        except ValueError, e:
+            log.error(e)
             
         return success
             
@@ -497,14 +501,22 @@ class DBoMagic:
     def toggleActive(self, item):
         item.active = not item.active
         item.current_session = not item.current_session
-        session.commit()
+        try:
+            session.commit()
+        except Exception, e:
+            session.rollback()
+            log.error(e)
     
     def updateActive(self, criteria, flag):
         lookup = Kanji.query.filter(Kanji.tags.like(u'%' + criteria + '%' )).all()
         for item in lookup:
             item.active = flag
             
-        session.commit()
+        try:
+            session.commit()
+        except Exception, e:
+            session.rollback()
+            log.error(e)
         
     def checkIfActive(self, criteria):
         #FIXME: as of now, it just checks if there're are items like these
@@ -520,12 +532,19 @@ class DBoMagic:
         return Kanji.query.all()
         
     def clearDB(self):
-        #TODO: also clear relation tables
-        Kanji.query.delete()
-        Word.query.delete()
-        Example.query.delete()
-        #cleanup_all(drop_tables=True)
-        session.commit()
+#        Kanji.query.delete()
+#        Word.query.delete()
+#        Example.query.delete()
+        
+        #NB: for table in reversed(meta.Base.metadata.sorted_tables): meta.Session.execute(table.delete()); meta.Session.commit()
+        
+        try:
+            for table in reversed(metadata.sorted_tables) : session.execute(table.delete()); session.commit()
+#            session.commit()
+        except Exception, e:
+            session.rollback()
+            log.error(e)
+            
         session.execute('VACUUM')
             
 class DictionaryLookup:
@@ -533,9 +552,7 @@ class DictionaryLookup:
     #FIXME: REFACTOR, REFACTOR, friggin' REFACTOR all this mess!
     def __init__(self):
         self.db = SqlSoup(SQLITE + PATH_TO_RES + JMDICT)
-        #self.joinTables()   #TODO: should move somewhere (may be pre-dump routine?)
         self.dictionary = {}
-#        self.loadJmdictFromDumpRegex()	#TODO: add check
         
     def joinTables(self):
         '''Join tables on init for better perfomance'''
@@ -708,13 +725,12 @@ class DictionaryLookup:
         
     def lookupAllByReading(self, kana, lang='eng'):
         '''Returns word -> reading -> senses'''
-        words = self.lookupItemByReading(kana)      #TODO: change to join and specific search by reading
+        words = self.lookupItemByReading(kana)
         results = {}
         for word in words:
             #results[word] = self.lookupItemTranslationJoin(word, lang)
             #results[word] = { 'sense' : self.lookupItemTranslationJoin(word, lang), 'kana' : self.lookupReadingsByItem(word) }  # returns everything, isn't quite right
             results[word] = { 'sense' : self.lookupItemTranslationJoin(word, lang) }  # returns everything, isn't quite right
-            #TODO: return sense by kana reading!
             
         return results
     
@@ -734,7 +750,7 @@ class DictionaryLookup:
             for item in lookup:
                 result.append(item.k_ele_value)
         else:
-            lookup = table.filter(table.r_ele_value.like(hira2kata(query))).all()    #TODO: it seems to be not working properly (POR QUA?!)
+            lookup = table.filter(table.r_ele_value.like(hira2kata(query))).all() 
             for item in lookup:
                 result.append(item.k_ele_value)
             
@@ -758,8 +774,6 @@ class DictionaryLookup:
                     results.append(reading.value)
         return results
     
-    #TODO: add universal method to get readings, translations altogether 
-    
     def lookupReadingsByItem(self, item):
         '''Search kana reading by item itself'''
         lookup = self.db.k_ele.filter(self.db.k_ele.value==item).all()
@@ -773,7 +787,6 @@ class DictionaryLookup:
                         results.append(reading.value)
         return removeDuplicates(results)
 
-    #TODO: add implementation searching both words and readings
     def lookupItemTranslationJoin(self, item, lang='eng'):
         '''Much faster than without join - looks up translation by word (not reading)'''
         join_sense = self.db.join(self.db.k_ele, self.db.sense, self.db.k_ele.fk==self.db.sense.fk, isouter=True)

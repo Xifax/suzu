@@ -498,7 +498,9 @@ class Quiz(QFrame):
         
         """Jmdict lookup"""
         self.jmdict = DictionaryLookup()
-        if self.options.isLoadingJmdict(): self.jmdict.loadJmdictFromDumpRegex()
+        if self.options.isLoadingJmdict(): 
+            self.jmdict.loadJmdictFromDumpRegex()
+            self.jmdict.joinTables()
         else: self.loadingStatus += '--> Jmdict disabled!\n'
                 
         """Manual add dialog"""
@@ -1101,8 +1103,6 @@ class Quiz(QFrame):
         self.allInfo.hide()
         self.kanjiInfo.hide()
         
-        self.rehash.checkSessionResults()
-        
         self.trayIcon.showMessage('Shutting down...', 'Saving session', QSystemTrayIcon.MessageIcon.Information, 20000 )
         
         if self.countdownTimer.isActive():
@@ -1114,6 +1114,8 @@ class Quiz(QFrame):
         if self.trayUpdater is not None and self.trayUpdater.isAlive() :
                 self.trayUpdater.cancel()    
             
+        self.rehash.checkSessionResults()
+        
         self.srs.endCurrentSession(self.stats)
         self.trayIcon.hide()
 

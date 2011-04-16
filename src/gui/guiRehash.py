@@ -37,9 +37,11 @@ class Filter(QObject):
         if event.type() == QEvent.HoverEnter:
             object.setStyleSheet('QLabel { border: 2px solid white; border-radius: 4px; color: white; ' + setBackgroundColor(object) + ' }')
             object.setText(object.text() + ' Next item...')
+            object.parent().centerWidget()
         if event.type() == QEvent.HoverLeave:
             object.setStyleSheet('QLabel { color: black; border-radius: 4px; ' + setBackgroundColor(object)  + ' }')
             object.setText(object.text().split(' ')[0])
+            object.parent().centerWidget()
         
         return False
 
