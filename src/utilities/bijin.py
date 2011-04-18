@@ -26,8 +26,11 @@ class Achievements:
         self.alreadySeen = []
     
     def correctAnswer(self):
+        print self.score, self.threshold
+        print self.achieved
+        
         self.score += 1
-        if self.score == self.threshold:
+        if self.score >= self.threshold:
             self.threshold *= 2
             self.achieved = self.randomBijin()
             self.score = 0

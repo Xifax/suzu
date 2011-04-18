@@ -537,7 +537,7 @@ class OptionsDialog(QFrame):
         self.showInfo('All data purged, database compacted.')
         
     def showAll(self):
-               
+        self.items.setWindowTitle('Items in db')
         unfillLayout(self.items.infoLayout)
         unfillLayout(self.items.layout)
         self.items.infoLayout = QHBoxLayout()
@@ -556,6 +556,7 @@ class OptionsDialog(QFrame):
             #progress = QProgressDialog('Loading items list...', 'Cancel', 0, len(studyItems), self)
             progress = QProgressDialog('Loading items list...', None, 0, len(studyItems), self)
             progress.setWindowModality(Qt.WindowModal)
+            progress.setWindowTitle('Reading db')
             progress.show()
             count = 0;
             

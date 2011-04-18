@@ -100,7 +100,10 @@ class srsScheduler:
     def getCorrectAnswer(self):
         words = MecabTool.parseToWordsFull(self.currentExample.sentence)
         answer = self.find(lambda word: self.currentItem.character in word['word'] , words)
-        return kata2hira(answer['pronunciation'])
+        try:
+            return kata2hira(answer['pronunciation'])
+        except Exception:
+            return u' '
     
     def getWordFromExample(self):
         words = MecabTool.parseToWordsFull(self.currentExample.sentence)
@@ -111,7 +114,10 @@ class srsScheduler:
     def getWordPronunciationFromExample(self, item):
         words = MecabTool.parseToWordsFull(self.currentExample.sentence)
         answer = self.find(lambda word: item in word['word'] , words)
-        return kata2hira(answer['pronunciation'])
+        try:
+            return kata2hira(answer['pronunciation'])
+        except Exception:
+            return u' '
     
     def find(self, f, seq):
         """Return first item in sequence where f(item) == True."""

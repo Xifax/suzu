@@ -186,7 +186,7 @@ BIJIN = {
          10: (u'Aibu Saki', u'相武紗季'),
          11: (u'Nakama Yukie', u'仲間由紀恵'),
          12: (u'Ueno Juri', u'上野樹里'),
-         13: (u'Ayase Haruka', u'綾瀬 はるか'),
+         13: (u'Ayase Haruka', u'綾瀬はるか'),
          14: (u'Bae Doo-na', u'ペ・ドゥナ')
          }
 

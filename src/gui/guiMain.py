@@ -255,6 +255,7 @@ class StatusFilter(QObject):
             
             if object.achievements.achieved is not None:
                 object.progress.setMaximum(object.achievements.threshold)
+                object.progress.setValue(0)
             else:
                 object.progress.show()
             object.activateWindow()
@@ -527,21 +528,21 @@ class Quiz(QFrame):
         desktop = QApplication.desktop().screenGeometry()
         self.setGeometry(QRect(desktop.width() - H_INDENT, desktop.height() - V_INDENT, D_WIDTH, D_HEIGHT))
         
-        self.setStyleSheet("QWidget { background-color: rgb(255, 255, 255); }")
+        self.setStyleSheet("QWidget { background-color: rgb(252, 252, 252); }")
         
         """Info dialog"""
         self.info.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.info.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         self.info.setGeometry(QRect(desktop.width() - H_INDENT - I_WIDTH - I_INDENT, desktop.height() - V_INDENT, I_WIDTH, I_HEIGHT))
         
-        self.info.setStyleSheet("QWidget { background-color: rgb(255, 255, 255); }")
+        self.info.setStyleSheet("QWidget { background-color: rgb(252, 252, 252); }")
         
         """Verbose info dialog"""
         self.allInfo.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.allInfo.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         self.allInfo.setGeometry(QRect(desktop.width() - H_INDENT - I_WIDTH - I_INDENT, desktop.height() - V_INDENT, I_WIDTH, I_HEIGHT))
         
-        self.allInfo.setStyleSheet("QWidget { background-color: rgb(255, 255, 255); }")
+        self.allInfo.setStyleSheet("QWidget { background-color: rgb(252, 252, 252); }")
         
         """Session message"""
         self.status.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
@@ -550,7 +551,7 @@ class Quiz(QFrame):
         self.status.setMinimumSize(S_WIDTH, S_HEIGHT)
 #        self.status.setMinimumWidth(S_WIDTH)
         
-        self.status.setStyleSheet("QWidget { background-color: rgb(255, 255, 255); }")
+        self.status.setStyleSheet("QWidget { background-color: rgb(252, 252, 252); }")
         
         self.setMask(roundCorners(self.rect(),5))
 #        self.status.setMask(roundCorners(self.status.rect(),5))
@@ -562,14 +563,14 @@ class Quiz(QFrame):
         self.kanjiInfo.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         self.kanjiInfo.setGeometry(QRect(desktop.width() - H_INDENT - K_WIDTH - K_INDENT, desktop.height() - V_INDENT, K_WIDTH, K_HEIGHT))
         
-        self.kanjiInfo.setStyleSheet("QWidget { background-color: rgb(255, 255, 255); }")
+        self.kanjiInfo.setStyleSheet("QWidget { background-color: rgb(252, 252, 252); }")
         
         """Kanji groups"""
         self.kanjiGroups.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.kanjiGroups.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         self.kanjiGroups.setGeometry(QRect(desktop.width() - H_INDENT - G_WIDTH - G_INDENT, desktop.height() - V_INDENT, G_WIDTH, G_HEIGHT))
         
-        self.kanjiGroups.setStyleSheet("QWidget { background-color: rgb(255, 255, 255); }")
+        self.kanjiGroups.setStyleSheet("QWidget { background-color: rgb(250, 250, 250); }")
         
 #        self.setMask(roundCorners(self.rect(),5))
 #        self.status.setMask(roundCorners(self.status.rect(),5))
@@ -660,10 +661,6 @@ class Quiz(QFrame):
               
         example = self.srs.getCurrentExample()
         
-        # checking sentence length
-        if len(example) > SENTENCE_MAX: self.sentence.setFont(QFont(self.options.getSentenceFont(), MIN_FONT_SIZE))
-        else: self.sentence.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))
-        
         # checking for no example case
         if example is None:
             self.manualAddDialog.setProblemKanji(self.srs.getCurrentItemKanji())
@@ -677,6 +674,10 @@ class Quiz(QFrame):
                 pass
         else:
             example = example.replace(self.srs.getWordFromExample(), u"<font color='blue'>" + self.srs.getWordFromExample() + u"</font>")
+            
+            # checking sentence length
+            if len(example) > SENTENCE_MAX: self.sentence.setFont(QFont(self.options.getSentenceFont(), MIN_FONT_SIZE))
+            else: self.sentence.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))
             
             self.sentence.setText(example)
             

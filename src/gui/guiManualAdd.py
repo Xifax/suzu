@@ -7,7 +7,8 @@ Created on Mar 21, 2011
 
 # own #
 from settings.fonts import Fonts
-from jtools.jisho import JishoClient 
+from jtools.jisho import JishoClient
+from gui.guiUtil import clickable 
 
 # external #
 from PySide.QtGui import *
@@ -16,6 +17,24 @@ from bzrlib.graph import SearchResult
 
 #TODO: make kanji copiable
 
+class Filter(QObject):
+    def eventFilter(self, object, event):
+        
+        if event.type() == QEvent.HoverEnter:
+            object.setStyleSheet('QLabel { border: 2px solid white; border-radius: 4px;}')
+            object.setText(object.text() + '\tClick to copy!')
+            object.adjustSize()
+
+        if event.type() == QEvent.HoverLeave:
+            object.setStyleSheet('QLabel { color: black; border: none; }')
+            object.setText(object.text().split('\t')[0])
+            object.adjustSize()
+
+        if event.type() == QEvent.MouseButtonPress:
+            pass
+            
+        return False
+
 class ManualAdd(QDialog):
     def __init__(self, db,  parent=None):
         super(ManualAdd, self).__init__(parent)
@@ -23,6 +42,7 @@ class ManualAdd(QDialog):
         # internal references #
         self.problemKanji = None
         self.db = db
+        self.clipboard = QApplication.clipboard()
         
         self.mainLayout = QGridLayout()
         
@@ -112,8 +132,16 @@ class ManualAdd(QDialog):
         
         self.findExamples.clicked.connect(self.findExamplesUsingJishoClient)
         self.copyToManual.clicked.connect(self.copyToManualInput)
+        
+        clickable(self.infoLabel).connect(self.copyToClipboard)
+        self.filter = Filter(self)
+        self.infoLabel.setAttribute(Qt.WA_Hover, True)
+        self.infoLabel.installEventFilter(self.filter)
 
     #--------------- actions -------------------#
+    
+    def copyToClipboard(self):
+        self.clipboard.setText(self.problemKanji.character)
 
     def setProblemKanji(self, kanji):
         '''Also updates dialog contens'''
@@ -206,8 +234,9 @@ class ManualAdd(QDialog):
         self.searchResult.clear()
         
         lookup = JishoClient.getExamples(self.possibleReading.text())
-        for item in lookup:
-            self.searchResult.append('<b>' + item +'</b><br/>' + lookup[item] + '<br/>')
+        if lookup is not None:
+            for item in lookup:
+                self.searchResult.append('<b>' + item +'</b><br/>' + lookup[item] + '<br/>')
             
         self.adjustSize()
 
