@@ -15,8 +15,6 @@ from PySide.QtGui import *
 from PySide.QtCore import *
 from bzrlib.graph import SearchResult
 
-#TODO: make kanji copiable
-
 class Filter(QObject):
     def eventFilter(self, object, event):
         
@@ -24,14 +22,16 @@ class Filter(QObject):
             object.setStyleSheet('QLabel { border: 2px solid white; border-radius: 4px;}')
             object.setText(object.text() + '\tClick to copy!')
             object.adjustSize()
+            object.parent().adjustSize()
 
         if event.type() == QEvent.HoverLeave:
             object.setStyleSheet('QLabel { color: black; border: none; }')
             object.setText(object.text().split('\t')[0])
             object.adjustSize()
+            object.parent().adjustSize()
 
         if event.type() == QEvent.MouseButtonPress:
-            pass
+            print 'Copied!'
             
         return False
 
@@ -240,9 +240,6 @@ class ManualAdd(QDialog):
             
         self.adjustSize()
 
-#        self.searchResult.resize(self.searchResult.width(), 30 * self.searchResult.toPlainText().count('\n'))
-#        self.resize(self.width(), self.height() + self.searchResult.height()/2)
-    
     def copyToManualInput(self):
         lookup = self.searchResult.toPlainText().split('\n')
         

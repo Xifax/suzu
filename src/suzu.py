@@ -117,8 +117,8 @@ from jdict.db import redict      # for redict, elusive import
 #        QT application loop       #
 ####################################    
 
-if __name__ == '__main__':
-
+def main():
+    
     app = QApplication(sys.argv)
     
     # application settings #
@@ -151,3 +151,6 @@ if __name__ == '__main__':
         sys.exit(app.exec_())
     except Exception, e:
         log.debug(e)
+        
+if __name__ == '__main__':
+    main()

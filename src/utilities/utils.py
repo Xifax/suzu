@@ -47,7 +47,8 @@ class BackgroundDownloader(Thread):
                 if item is None : self.hasItemsToUpdate = False; print 'No more items to update'
                 else:
                     self.dbUpdater.addExamples(item, JishoClient.getExamples(item.character))
-                    print 'Added examples for ' + item.character
+#                    print 'Added examples for ' + item.character
+                    print 'Attempted to add examples for ' + item.character
             self.event.wait(self.waitFor)
 
     def stop(self):

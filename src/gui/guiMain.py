@@ -679,6 +679,9 @@ class Quiz(QFrame):
             if len(example) > SENTENCE_MAX: self.sentence.setFont(QFont(self.options.getSentenceFont(), MIN_FONT_SIZE))
             else: self.sentence.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))
             
+            #temporary debug info:
+            print len(example), self.sentence.font()
+            
             self.sentence.setText(example)
             
             readings = self.srs.getQuizVariants()
