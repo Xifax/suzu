@@ -187,7 +187,8 @@ class QuizRehash(QDialog):
             self.parseReadings()
             self.items_iterator = iter(self.items)
             self.items_to_delete = []
-            self.exec_()
+            if len(self.items) > 0:
+                self.exec_()
             
     def endRehash(self):
         self.done(0)

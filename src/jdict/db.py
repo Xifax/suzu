@@ -214,13 +214,13 @@ class DBoMagic:
     
     def getProblematicItems(self):
         selection = Kanji.query.filter(Kanji.wrong_in_current_session > 0).all()
-        if MAX_REVIEW_ITEMS > len(selection) > 0:
+        if len(selection) > MAX_REVIEW_ITEMS:
             mean_times_wrong = sum([kanji.wrong_in_current_session for kanji in selection])/len(selection)
             resulting_items = [kanji for kanji in selection if kanji.wrong_in_current_session > mean_times_wrong ]
             
             if len(resulting_items) == 0: return selection
             else: return resulting_items
-        elif  len(selection) > MAX_REVIEW_ITEMS:
+        elif  MAX_REVIEW_ITEMS >= len(selection) > 0:
             return selection
         else: return None
 

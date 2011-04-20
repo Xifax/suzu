@@ -97,7 +97,7 @@ Created on Mar 19, 2011
 import sys
 
 # external packages #
-from PySide.QtGui import QApplication
+from PySide.QtGui import QApplication, QIcon
 
 # own packages #
 from gui.guiMain import Quiz
@@ -111,6 +111,7 @@ from gui.guiRehash import QuizRehash
 from utilities.utils import BackgroundDownloader
 from utilities.log import log
 from settings.optionsBackend import Options
+from settings.constants import PATH_TO_RES, LOGOS
 from jdict.db import redict      # for redict, elusive import
 
 ####################################
@@ -120,6 +121,7 @@ from jdict.db import redict      # for redict, elusive import
 def main():
     
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon(PATH_TO_RES + LOGOS + 'suzu.png'))
     
     # application settings #
     options = Options()

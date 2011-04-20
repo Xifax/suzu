@@ -500,6 +500,8 @@ class OptionsDialog(QFrame):
         self.updateTotalItemsLabel()
         self.updateSessionLimits()
         self.updateTooltips()
+        
+        self.updateDbTable()
     
     def updateTooltips(self):
         if self.sessionModeCombo.currentText() == modes.kanji.key:

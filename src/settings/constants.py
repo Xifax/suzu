@@ -136,7 +136,7 @@ BUTTON_KANA_MAX = 5
 ###       sentences     ###
 ###########################
 
-SENTENCE_MAX = 44
+SENTENCE_MAX = 74
 COLUMNS_MAX = 22
 TRANSLATION_CHARS_LIMIT = 90
 MIN_FONT_SIZE = 14
@@ -174,6 +174,7 @@ UPDATE_FREQ = 1000  #ms
 ###########################
 
 BIJIN = {
+         0: (u'Sakamoto Maaya', u'坂本真綾'),
          1: (u'Kawamura Yukie', u'川村ゆきえ'),
          2: (u'Isihara Satomi', u'石原さとみ'),
          3: (u'Horikita Maki', u'堀北真希'),
@@ -187,11 +188,13 @@ BIJIN = {
          11: (u'Nakama Yukie', u'仲間由紀恵'),
          12: (u'Ueno Juri', u'上野樹里'),
          13: (u'Ayase Haruka', u'綾瀬はるか'),
-         14: (u'Bae Doo-na', u'ペ・ドゥナ')
+         14: (u'Bae Doo-na', u'ペ・ドゥナ'),
+         15: (u'Shida Mirai', u'志田未来'),
+         16: (u'Tano Kii', u'北乃きい'),
          }
 
 ###########################
 ###        review       ###
 ###########################
 
-MAX_REVIEW_ITEMS = 15
+MAX_REVIEW_ITEMS = 30

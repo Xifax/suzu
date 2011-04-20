@@ -49,7 +49,7 @@ class About(QFrame):
      
     def __init__(self, parent=None):
         super(About, self).__init__(parent)
-        
+
         ### components ###
         self.aboutApp = QLabel(u'')
         self.logo = QLabel(u'')
