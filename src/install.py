@@ -21,7 +21,7 @@ try:
     from setuptools.command import easy_install
 except ImportError:
     print 'Please, install easy_install!'
-    if raw_input('Download setuptools now? [y/n]: ') == 'y' or 'Y':
+    if raw_input('Download setuptools now? [y/n]: ') == ('y' or 'Y'):
         file = downloadWithProgressbar('http://pypi.python.org/packages/2.6/s/setuptools/setuptools-0.6c11.win32-py2.6.exe')
         subprocess.call('./' + file)
         os.remove('./' + file)

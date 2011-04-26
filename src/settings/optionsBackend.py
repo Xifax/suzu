@@ -73,8 +73,12 @@ class Options:
                    }),
                ]
         
-        #creates or reads from app.ini in Users/username/
-        self.CONFIG = UserConfig(self.APP_NAME, self.OPTIONS, version=__version__)
+        try:
+            #creates or reads from app.ini in Users/username/
+            self.CONFIG = UserConfig(self.APP_NAME, self.OPTIONS, version=__version__)
+        except IOError:
+            pass
+        
     ### fonts ###
     def getSentenceFont(self):
         #return u'' + self.CONFIG.get('SentenceFont', 'name')    #NB: if launched from windows console (cmd) here will be UnicodeDecodeError

@@ -106,7 +106,7 @@ UTILS_ICON = 'utils.png'
 ### version information ###
 ###########################
 
-__version__ = '0.0.4'       #beware: is not imported with '*'
+__version__ = '0.0.5'       #beware: is not imported with '*'
 __application__ = 'suzu'    #輪廻／りんね or 鈴ね
 
 ###########################
@@ -136,7 +136,7 @@ BUTTON_KANA_MAX = 5
 ###       sentences     ###
 ###########################
 
-SENTENCE_MAX = 74
+SENTENCE_MAX = 60
 COLUMNS_MAX = 22
 TRANSLATION_CHARS_LIMIT = 90
 MIN_FONT_SIZE = 14
@@ -191,6 +191,7 @@ BIJIN = {
          14: (u'Bae Doo-na', u'ペ・ドゥナ'),
          15: (u'Shida Mirai', u'志田未来'),
          16: (u'Tano Kii', u'北乃きい'),
+         17: (u'Saeko', u'サエコ'),
          }
 
 ###########################

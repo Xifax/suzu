@@ -676,7 +676,7 @@ class Quiz(QFrame):
             example = example.replace(self.srs.getWordFromExample(), u"<font color='blue'>" + self.srs.getWordFromExample() + u"</font>")
             
             # checking sentence length
-            if len(example) > SENTENCE_MAX: self.sentence.setFont(QFont(self.options.getSentenceFont(), MIN_FONT_SIZE))
+            if len(self.srs.currentExample.sentence) > SENTENCE_MAX: self.sentence.setFont(QFont(self.options.getSentenceFont(), MIN_FONT_SIZE))
             else: self.sentence.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))
             
             #temporary debug info:
