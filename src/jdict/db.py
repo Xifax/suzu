@@ -353,13 +353,13 @@ class DBoMagic:
                 else: break
                 
         #inserting correct reading at random position (if not already)
-        print ' '.join(readings) #THIS IS FOR TEST ONLY     
+#        print ' '.join(readings) #THIS IS FOR TEST ONLY     
         if kana not in readings[:4]:
             if len(readings) >= 4:
                 readings[randrange(0, 4)] = kana
             else:
                 readings[randrange(0, len(readings))] = kana
-        print ' '.join(readings) #THIS IS FOR TEST ONLY     
+#        print ' '.join(readings) #THIS IS FOR TEST ONLY     
 
         return readings
     

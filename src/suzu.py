@@ -79,9 +79,9 @@ Created on Mar 19, 2011
 # TODO: kanji/word add notification
 # TODO: prettify 'add' dialog
 # TODO: show qdict found items count
+# TODO: refurbish statistics (with graphs)
 
 # urgent
-# TODO: fix 'pause time'
 
 # concept
 

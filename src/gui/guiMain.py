@@ -680,7 +680,7 @@ class Quiz(QFrame):
             else: self.sentence.setFont(QFont(self.options.getSentenceFont(), self.options.getSentenceFontSize()))
             
             #temporary debug info:
-            print len(example), self.sentence.font()
+#            print len(example), self.sentence.font()
             
             self.sentence.setText(example)
             

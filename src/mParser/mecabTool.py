@@ -25,7 +25,8 @@ class MecabTool:
             try:
                 infos['pronunciation'] = array[7]
             except IndexError, e:
-                print e, text; log.debug(str(e) +'\t' + text) 
+#                print e, text; log.debug(str(e) +'\t' + text)
+                log.debug(str(e) +'\t' + text)
             if not infos['type'] == "BOS/EOS":
                 word_array.append(infos)
             mnode = mnode.next

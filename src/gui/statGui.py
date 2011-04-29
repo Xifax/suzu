@@ -48,15 +48,16 @@ class StatsInfo(QDialog):
     def initStats(self):
         self.statistics = self.db.getAllSessions()
         
-        infoText = u''
+        infoText = u'Last ten sessions:<br/><br/>'
         total_time = 0; total_items = 0; active_time = 0; paused_time = 0
-        for session in self.statistics:
+        for session in self.statistics[:10]:
             infoText += '<b>' + str(session.date) + '</b>:\t launched <b>' + str(session.times_launched) + '</b> time(s)<br/>' +\
             'Total time: ' + time.strftime('%H:%M:%S', time.gmtime(session.time_running)) +\
             '\tQuiz active: ' + time.strftime('%H:%M:%S', time.gmtime(session.time_active)) +\
             '\tQuiz paused: ' + time.strftime('%H:%M:%S', time.gmtime(session.time_paused)) + '<br/>'   +\
             'Correct items: <b>' + str(session.items_correct) + '</b>\tWrong items: <b>' + str(session.items_wrong) + '</b><br/><br/>'
             
+        for session in self.statistics:            
             total_time += session.time_running
             active_time += session.time_active
             paused_time += session.time_paused
