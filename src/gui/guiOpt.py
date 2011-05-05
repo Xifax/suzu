@@ -40,8 +40,12 @@ class StatusFilter(QObject):
             else: object.setStyleSheet("QLabel { color:" + object.params['color'] + "; }")
             
         if event.type() == QEvent.MouseButtonPress:
-            pass
-            #object.status.hide()
+            object.parent().db.toggleActive(object.params['item'])
+            if object.params['item'].active: object.params['color'] = Leitner.correspondingColor(object.params['item'].leitner_grade)
+            else: object.params['color'] = 'gray'
+            
+            if object.parent().backgroundFlag:  object.setStyleSheet("QLabel { color: white; background-color:" + object.params['color'] + "; border: 1px solid white; }")
+            else:  object.setStyleSheet("QLabel { color: black; }")
             
         return False
 
@@ -63,6 +67,9 @@ class OptionsDialog(QFrame):
         
         # all items info
         self.items = QDialog()
+        self.items.db = self.db
+#        self.items = QFrame(self)
+#        self.items.setWindowFlags(Qt.ToolTip)
         self.items.layout = QGridLayout()
         self.items.infoLayout = QHBoxLayout()
         # filter 
@@ -260,7 +267,8 @@ class OptionsDialog(QFrame):
     
     def initializeComposition(self):
         
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+#        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(Qt.FramelessWindowHint)
         self.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         desktop = QApplication.desktop().screenGeometry()
 
@@ -270,7 +278,8 @@ class OptionsDialog(QFrame):
         
         self.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Maximum))
         
-        self.status.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+#        self.status.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.status.setWindowFlags(Qt.FramelessWindowHint)
         self.status.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         
         self.status.setGeometry((desktop.width() - O_WIDTH)/2, (desktop.height() + O_HEIGHT)/2 + OS_INDENT, O_WIDTH, OS_HEIGTH )
@@ -279,7 +288,7 @@ class OptionsDialog(QFrame):
         self.status.layout.setAlignment(Qt.AlignCenter)
         self.status.layout.setMargin(0)
         
-        self.items.setWindowFlags(Qt.WindowStaysOnTopHint)
+#        self.items.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.items.setStyleSheet("QDialog { background-color: rgb(255, 255, 255) }")
             
     def initializeComponents(self):
@@ -588,7 +597,7 @@ class OptionsDialog(QFrame):
                     examples[el.sentence] = el.translation
     
                 element.params = {'color' : color, 'next': item.next_quiz.strftime('%d %b %H:%M:%S'), 'inSession': item.been_in_session, 
-                                  'words': words, 'examples': examples, 'leitner': Leitner.grades[item.leitner_grade].key}
+                                  'words': words, 'examples': examples, 'leitner': Leitner.grades[item.leitner_grade].key, 'item' : item}
                 
                 self.items.layout.addWidget(element, i, j)
                 

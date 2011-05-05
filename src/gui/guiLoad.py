@@ -29,7 +29,6 @@ class QuickLoad(QDialog):
         self.loadJmdict = QCheckBox('Jmdict (pickled)')
         self.loadGroups = QCheckBox('Kanji.Odyssey (pickled)')
         
-#        self.saveAndClose = QPushButton('What to do')
         self.saveAndClose = QPushButton(u'どうしよう')
         
         self.layout.addWidget(self.showOnStart)

@@ -192,6 +192,10 @@ BIJIN = {
          15: (u'Shida Mirai', u'志田未来'),
          16: (u'Tano Kii', u'北乃きい'),
          17: (u'Saeko', u'サエコ'),
+		 18: (u'Katase Nana', u'片瀬那奈'),
+		 19: (u'Aibu Saki', u'相武紗季'),
+		 20: (u'Maomi Yuuki', u'優木まおみ'),
+		 21: (u'Omoto', u'Ayano'),
          }
 
 ###########################

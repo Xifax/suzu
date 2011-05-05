@@ -1,4 +1,4 @@
-鈴 (suzu - bell)
+鈴 (suzu - bell) 
 Nonstop Spaced Repetition utility, implemented with python and pyside.
 
 ---
@@ -20,7 +20,7 @@ Launch:
 
 Notes:
 
-* As of now uromkan may not convert romaji to kana (IME input still possible)
+* As of now, uromkan may not convert romaji to kana *(IME input still possible)*
 * Automatic dictionaries download/conversion does not works
 * There may be some inaccuracies in how mecab parses example sentences
 * Config .ini stores japanese characters, which may result in some minor glitches
@@ -28,10 +28,10 @@ Notes:
 * It's recommended to use plastique theme
 * For now, only kanji mode is supported
 
-Resources (as of now, somewhat in disarray):
+Resources *(as of now, somewhat in disarray)*:
 
-* krad, edict, kanjidic from cjktools-data		/context help
-* jmdict, kanjidic2 in sqlite					/jlpt levels, grades and frequency
-* pickled jmdict								/fast search in popup dictionary
-* pickled Kanji.Odyssey groups					/similar kanji
-* kanjikafe stroke order diagramms				/stroke order
+* krad, edict, kanjidic from cjktools-data		*/context help*
+* jmdict, kanjidic2 in sqlite					*/jlpt levels, grades and frequency*
+* pickled jmdict								*/fast search in popup dictionary*
+* pickled Kanji.Odyssey groups					*/similar kanji*
+* kanjikafe stroke order diagramms				*/stroke order*
